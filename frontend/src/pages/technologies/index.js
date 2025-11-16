@@ -1,43 +1,46 @@
-import { Title, Container, Main } from '../../components'
+import { Container, Main } from '../../components'
 import styles from './styles.module.css'
 import MetaTags from 'react-meta-tags'
 
 const Technologies = () => {
-  
-  return <Main>
-    <MetaTags>
-      <title>О проекте</title>
-      <meta name="description" content="Фудграм - Технологии" />
-      <meta property="og:title" content="О проекте" />
-    </MetaTags>
-    
-    <Container>
-      <h1 className={styles.title}>Технологии</h1>
-      <div className={styles.content}>
-        <div>
-          <h2 className={styles.subtitle}>Технологии, которые применены в этом проекте:</h2>
-          <div className={styles.text}>
-            <ul className={styles.textItem}>
-              <li className={styles.textItem}>
-                Python
-              </li>
-              <li className={styles.textItem}>
-                Django
-              </li>
-              <li className={styles.textItem}>
-                Django REST Framework
-              </li>
-              <li className={styles.textItem}>
-                Djoser
-              </li>
+  return (
+    <Main>
+      <MetaTags>
+        <title>О проекте — Технологии</title>
+        <meta name="description" content="Фудграм — Технологии и навыки" />
+        <meta property="og:title" content="Технологии проекта Фудграм" />
+      </MetaTags>
+
+      <Container>
+        <h1 className={styles.title}>Технологии</h1>
+        <div className={styles.content}>
+
+          <div>
+            <h2 className={styles.subtitle}>Основные технологии и версии:</h2>
+            <ul className={styles.text}>
+              <li>Python 3.12</li>
+              <li>Django 5.2.8</li>
+              <li>Django REST Framework 3.16.1</li>
+              <li>Djoser 2.3.3</li>
             </ul>
           </div>
+
+          <div>
+            <h2 className={styles.subtitle}>Основные навыки:</h2>
+            <ul className={styles.text}>
+              <li>REST API и аутентификация через JWT</li>
+              <li>Работа с PostgreSQL</li>
+              <li>Развёртывание через Docker и Nginx</li>
+              <li>Обработка изображений с Pillow</li>
+            </ul>
+          </div>
+
         </div>
-      </div>
-      
-    </Container>
-  </Main>
+      </Container>
+    </Main>
+  )
 }
 
 export default Technologies
+
 
