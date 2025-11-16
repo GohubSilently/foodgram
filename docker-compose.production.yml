@@ -1,6 +1,7 @@
 volumes:
   pg_data:
-  static:
+  backend_static:
+  frontend_static:
   media:
 
 services:
@@ -19,35 +20,30 @@ services:
       - db
     env_file:
       - .env
-    command:
-      - /bin/sh
-      - '-c'
-      - '/app/entrypoint.sh'
     volumes:
-      - static:/backend_static
+      - backend_static:/backend_static
       - media:/app/media
 
   frontend:
     container_name: foodgram-front
     image: gohub1/foodgram_frontend
     platform: linux/amd64
+    command: cp -r /app/build/. /frontend_static/.
     depends_on:
       - backend
     volumes:
-      - static:/frontend_static
-      - ../frontend/build:/app/result_build/
+      - frontend_static:/frontend_static
 
   nginx:
-    container_name: foodgram-proxyy
-    image: nginx:1.25.4-alpine
+    container_name: foodgram-proxy
+    image: gohub1/foodgram_proxy
+    platform: linux/amd64
     depends_on:
       - backend
       - frontend
-    ports:
-      - "80:80"
     volumes:
-      - ./infra/nginx.conf:/etc/nginx/conf.d/default.conf
-      - ../frontend/build:/usr/share/nginx/html/
-      - ../docs/:/usr/share/nginx/html/api/docs/
+      - backend_static:/staticfiles/backend_static
+      - frontend_static:/staticfiles/frontend_static
       - media:/media
-      - static:/staticfiles
+    ports:
+      - 8000:80
