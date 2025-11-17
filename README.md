@@ -59,3 +59,12 @@ ALLOWED_HOSTS=localhost 127.0.0.1
 ```
 docker compose down && docker compose up --build
 ```
+
+4. Загружаем данные и применяем миграции
+```
+docker compose exec foodgram_backend python manage.py makemigrations
+docker compose exec foodgram_backend python manage.py migrate
+docker compose exec foodgram_backend python manage.py collectstatic
+docker compose exec foodgram_backend cp -r /app/collected_static/. /backend_static/
+docker compose exec foodgram_backend python manage.py load_ingredients_tags
+```

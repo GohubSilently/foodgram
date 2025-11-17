@@ -13,7 +13,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv(key='SECRET_KEY', default=get_random_secret_key())
 DEBUG = os.getenv(key='DEBUG', default='False').lower() == 'true'
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://foodgrampro.hopto.org",
+]
 ALLOWED_HOSTS = os.getenv(key='ALLOWED_HOSTS', default='localhost 127.0.0.1').split()
+CORS_ORIGIN_WHITELIST = [
+    "https://foodgrampro.hopto.org",
+]
 
 
 INSTALLED_APPS = [
