@@ -60,12 +60,14 @@ class Recipe(models.Model):
     image = models.ImageField(help_text='Фото', upload_to='recipes')
     is_favorited = models.BooleanField(default=False)
     is_in_shopping_cart = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     author = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     tags = models.ManyToManyField(Tag)
     ingredients = models.ManyToManyField(Ingredient)
 
     class Meta:
+        ordering = ('-created_at',)
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
         default_related_name = 'recipes'

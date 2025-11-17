@@ -8,6 +8,7 @@ from .filters import IngredientFilter, RecipeFilter
 from .models import (
     Tag, Ingredient, Recipe, ShoppingCart, Favorite,
 )
+from .pagination import CustomPagination
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 from .serializers import (
     TagSerializer, IngredientReadSerializer, RecipeReadSerializer,
@@ -34,6 +35,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     permission_classes = (IsOwnerOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
+    pagination_class = CustomPagination
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):

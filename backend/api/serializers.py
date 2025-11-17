@@ -52,6 +52,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             'id', 'tags', 'ingredients', 'name', 'image', 'text',
             'cooking_time',
         )
+        read_only_fields = ('created_at',)
 
     def create_ingredients(self, recipe, ingredients):
         objs = [
@@ -91,6 +92,7 @@ class RecipeIngredientReadSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit', 'amount')
 
 
+
 class RecipeReadSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     author = CustomUserSerializer(read_only=True)
@@ -107,6 +109,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             'id', 'tags', 'author', 'ingredients', 'is_favorited',
             'is_in_shopping_cart', 'name', 'image', 'text', 'cooking_time'
         )
+        read_only_fields = ('created_at',)
 
     def get_ingredients(self, obj):
         ingredients = RecipeIngredient.objects.filter(recipe=obj)
