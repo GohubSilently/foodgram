@@ -20,7 +20,7 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     strategy:
       matrix:
-        python-version: [3.9, 3.12]
+        python-version: [3.10, 3.12]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -103,7 +103,7 @@ jobs:
       - name: Push to DockerHub
         uses: docker/build-push-action@v4
         with:
-          context: ./nginx/
+          context: ./infra/
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/foodgram_proxy:latest
 
