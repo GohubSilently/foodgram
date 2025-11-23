@@ -180,36 +180,3 @@ class RecipeShortSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
         read_only_fields = fields
-
-
-# class ShoppingCartSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = ShoppingCart
-#         fields = ('id', 'user', 'recipe',)
-#         read_only_fields = ('id', 'user', 'recipe',)
-#
-#     def to_representation(self, instance):
-#         recipe = instance.recipe
-#         return {
-#             'id': recipe.id,
-#             'name': recipe.name,
-#             'image': recipe.image.url,
-#             'cooking_time': recipe.cooking_time,
-#         }
-#
-#
-# class FavoriteSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Favorite
-#         fields = ('id', 'user', 'recipe',)
-#         read_only_fields = ('id', 'user', 'recipe',)
-#
-#     def to_representation(self, instance):
-#         recipe = instance.recipe
-#         return {
-#             'id': recipe.id,
-#             'name': recipe.name,
-#             'image': recipe.image.url,
-#             'cooking_time': recipe.cooking_time,
-#         }
-

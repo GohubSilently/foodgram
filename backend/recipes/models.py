@@ -50,10 +50,11 @@ class Tag(models.Model):
     name = models.CharField(max_length=32, unique=True, help_text='Имя')
     slug = models.SlugField(
         max_length=32,
-        validators=[RegexValidator(
-            regex='^[-a-zA-Z0-9_]+$',
-            message='Некоретктный ник',
-            code='invalid_username'
+        validators=[
+            RegexValidator(
+                regex='^[-a-zA-Z0-9_]+$',
+                message='Некоретктный ник',
+                code='invalid_username'
             )
         ],
         unique=True,

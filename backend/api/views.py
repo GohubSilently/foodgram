@@ -1,4 +1,4 @@
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
@@ -8,22 +8,18 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .filters import (IngredientFilter,
-                      RecipeFilter
-)
+from .filters import IngredientFilter, RecipeFilter
 from recipes.models import (
-    Tag, Ingredient,
-    Recipe, ShoppingCart, Favorite, User, Subscription
+    Tag, Ingredient, Recipe, ShoppingCart, Favorite, User, Subscription
 )
 from .pagination import Pagination
 from .permissions import IsOwnerOrReadOnly
 from .serializers import (
     TagSerializer, IngredientReadSerializer, RecipeReadSerializer,
-    RecipeCreateUpdateSerializer,
-    # FavoriteSerializer, ShoppingCartSerializer,
-    UserAvatarSerializer, UserSubscriptionSerializer, UserSerializer,
-    RecipeShortSerializer
+    RecipeCreateUpdateSerializer, UserAvatarSerializer,
+    UserSubscriptionSerializer, UserSerializer, RecipeShortSerializer
 )
+
 
 class UserViewSet(UserViewSet):
     queryset = User.objects.all()
@@ -71,7 +67,9 @@ class UserViewSet(UserViewSet):
             if user == author:
                 raise ValidationError('Нельзя подписаться на самого себя!')
             if Subscription.objects.filter(user=user, author=author).exists():
-                raise ValidationError('Вы уже подписаны на этого пользователя!')
+                raise ValidationError(
+                    'Вы уже подписаны на этого пользователя!'
+                )
             Subscription.objects.create(user=user, author=author)
             return Response(
                 UserSubscriptionSerializer(
@@ -79,7 +77,9 @@ class UserViewSet(UserViewSet):
                 ).data,
                 status=status.HTTP_201_CREATED)
         if request.method == 'DELETE':
-            get_object_or_404(Subscription.objects.filter(author_id=id)).delete()
+            get_object_or_404(
+                Subscription.objects.filter(author_id=id)
+            ).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -127,7 +127,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     context={'request': request},
                 ).data, status=status.HTTP_201_CREATED)
         elif request.method == 'DELETE':
-            get_object_or_404(ShoppingCart.objects.filter(user=user, recipe=recipe)).delete()
+            get_object_or_404(
+                ShoppingCart.objects.filter(user=user, recipe=recipe)
+            ).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
@@ -147,7 +149,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     context={'request': request},
                 ).data, status=status.HTTP_201_CREATED)
         elif request.method == 'DELETE':
-            get_object_or_404(Favorite.objects.filter(user=user, recipe=recipe)).delete()
+            get_object_or_404(
+                Favorite.objects.filter(user=user, recipe=recipe)
+            ).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
@@ -158,4 +162,3 @@ class RecipeViewSet(viewsets.ModelViewSet):
         short_link = reverse('recipes:short_link', kwargs={'pk': pk})
         short_link = request.build_absolute_uri(short_link)
         return Response({'short_link': short_link})
-

@@ -11,8 +11,8 @@ class IngredientFilter(django_filters.FilterSet):
     class Meta:
         model = Ingredient
         fields = ('name',)
-#
-#
+
+
 class RecipeFilter(django_filters.FilterSet):
     is_favorited = django_filters.BooleanFilter()
     is_in_shopping_cart = django_filters.BooleanFilter()
