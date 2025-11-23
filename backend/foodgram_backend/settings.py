@@ -1,5 +1,4 @@
 import os
-
 from pathlib import Path
 
 from django.core.management.utils import get_random_secret_key
@@ -14,13 +13,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv(key='SECRET_KEY', default=get_random_secret_key())
 DEBUG = os.getenv(key='DEBUG', default='False').lower() == 'true'
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://foodgrampro.hopto.org",
-]
+csrf_origin = os.getenv(key='CSRF_TRUSTED_ORIGINS', default='')
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origin.split(',')]
 ALLOWED_HOSTS = os.getenv(key='ALLOWED_HOSTS', default='localhost 127.0.0.1').split()
-CORS_ORIGIN_WHITELIST = [
-    "https://foodgrampro.hopto.org",
-]
+CORS_ORIGIN_WHITELIST = os.getenv(key='CORS_ORIGIN_WHITELIST')
 
 
 INSTALLED_APPS = [
@@ -34,8 +30,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'djoser',
     'django_filters',
+    'recipes.apps.RecipesConfig',
     'api.apps.ApiConfig',
-    'users.apps.UsersConfig',
 ]
 
 MIDDLEWARE = [
@@ -86,7 +82,7 @@ else:
         }
     }
 
-AUTH_USER_MODEL = 'users.CustomUser'
+AUTH_USER_MODEL = 'recipes.User'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -106,7 +102,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'ru-RU'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
@@ -144,8 +140,7 @@ DJOSER = {
     },
 
     'SERIALIZERS': {
-        'user': 'users.serializers.CustomUserSerializer',
-        'user_create': 'users.serializers.CustomUserCreateSerializer',
-        'current_user': 'users.serializers.CustomUserSerializer',
+        'user': 'api.serializers.UserSerializer',
+        'current_user': 'api.serializers.UserSerializer',
     }
 }
