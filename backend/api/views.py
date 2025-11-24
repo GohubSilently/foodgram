@@ -1,5 +1,4 @@
 from django.shortcuts import get_object_or_404
-from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from rest_framework import viewsets, status
@@ -21,7 +20,7 @@ from .serializers import (
 )
 
 
-class UserViewSet(UserViewSet):
+class RecipeUserViewSet(UserViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = Pagination
@@ -50,7 +49,7 @@ class UserViewSet(UserViewSet):
     def subscriptions(self, request):
         return Response(
             UserSubscriptionSerializer(
-                User.objects.filter(followers__user=request.user),
+                User.objects.filter(subscriptions__user=request.user),
                 context={'request': request},
                 many=True
             ).data
@@ -63,24 +62,26 @@ class UserViewSet(UserViewSet):
     def subscribe(self, request, id=None):
         user = request.user
         author = get_object_or_404(User, pk=id)
+        if user == author:
+            raise ValidationError('Нельзя подписаться на самого себя!')
         if request.method == 'POST':
-            if user == author:
-                raise ValidationError('Нельзя подписаться на самого себя!')
-            if Subscription.objects.filter(user=user, author=author).exists():
+            subscription, create = Subscription.objects.get_or_create(
+                user=user, author=author
+            )
+            if not create:
                 raise ValidationError(
                     'Вы уже подписаны на этого пользователя!'
                 )
-            Subscription.objects.create(user=user, author=author)
+
             return Response(
                 UserSubscriptionSerializer(
                     author, context={'request': request}
                 ).data,
                 status=status.HTTP_201_CREATED)
-        if request.method == 'DELETE':
-            get_object_or_404(
-                Subscription.objects.filter(author_id=id)
-            ).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        get_object_or_404(
+            Subscription.objects.filter(author_id=id)
+        ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -110,55 +111,47 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
+    def user_iteraction(self, model, serializer_class, request, pk):
+        user = request.user
+        recipe = model.objects.filter(user=user, recipe_id=pk)
+
+        if request.method == 'POST':
+            if recipe.exists():
+                raise ValidationError('Рецепт уже есть в списке!')
+            recipe = model.objects.create(user=user, recipe_id=pk)
+            return Response(
+                serializer_class(
+                    recipe.recipe,
+                    context={'request': request}
+                ).data,
+                status=status.HTTP_201_CREATED
+            )
+
+        if not recipe.exists():
+            raise ValidationError('Такого рецепта нет!')
+        recipe.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     @action(
         detail=True, methods=['post', 'delete'], url_path='shopping_cart',
         permission_classes=(IsAuthenticated,)
     )
     def shopping_cart(self, request, pk=None):
-        user = request.user
-        recipe = get_object_or_404(Recipe, pk=pk)
-        if request.method == 'POST':
-            if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
-                raise ValidationError('Этот рецепт уже есть в списке покупок!')
-            ShoppingCart.objects.create(user=user, recipe=recipe)
-            return Response(
-                RecipeShortSerializer(
-                    recipe,
-                    context={'request': request},
-                ).data, status=status.HTTP_201_CREATED)
-        elif request.method == 'DELETE':
-            get_object_or_404(
-                ShoppingCart.objects.filter(user=user, recipe=recipe)
-            ).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        return self.user_iteraction(
+            ShoppingCart,
+            RecipeShortSerializer,
+            request,
+            pk
+        )
 
     @action(
         detail=True, methods=['post', 'delete'], url_path='favorite',
         permission_classes=(IsAuthenticated,)
     )
     def favorite(self, request, pk=None):
-        user = request.user
-        recipe = get_object_or_404(Recipe, pk=pk)
-        if request.method == 'POST':
-            if Favorite.objects.filter(user=user, recipe=recipe).exists():
-                raise ValidationError('Этот рецепт уже есть в избранном!')
-            Favorite.objects.create(user=user, recipe=recipe)
-            return Response(
-                RecipeShortSerializer(
-                    recipe,
-                    context={'request': request},
-                ).data, status=status.HTTP_201_CREATED)
-        elif request.method == 'DELETE':
-            get_object_or_404(
-                Favorite.objects.filter(user=user, recipe=recipe)
-            ).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(
-        detail=True, methods=['get'], url_path='get-link',
-        permission_classes=(IsAuthenticated,)
-    )
-    def get_link(self, request, pk=None):
-        short_link = reverse('recipes:short_link', kwargs={'pk': pk})
-        short_link = request.build_absolute_uri(short_link)
-        return Response({'short_link': short_link})
+        return self.user_iteraction(
+            Favorite,
+            RecipeShortSerializer,
+            request,
+            pk
+        )

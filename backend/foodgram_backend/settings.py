@@ -13,8 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv(key='SECRET_KEY', default=get_random_secret_key())
 DEBUG = os.getenv(key='DEBUG', default='False').lower() == 'true'
 
-csrf_origin = os.getenv(key='CSRF_TRUSTED_ORIGINS', default='')
-CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origin.split(',')]
+CSRF_TRUSTED_ORIGINS = [csrf for csrf in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')]
 ALLOWED_HOSTS = os.getenv(key='ALLOWED_HOSTS', default='localhost 127.0.0.1').split()
 CORS_ORIGIN_WHITELIST = os.getenv(key='CORS_ORIGIN_WHITELIST')
 

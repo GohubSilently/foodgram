@@ -1,13 +1,20 @@
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import (
-    RegexValidator, MaxValueValidator, MinValueValidator
+    RegexValidator, MinValueValidator
 )
 from django.db import models
 
+from api.constants import MIN_VALUE
+
 
 class User(AbstractUser):
-    # Так как я не переопределяю username - у него уже есть валидаци.
-    email = models.EmailField(max_length=254, unique=True)
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+        validators=[RegexValidator('^[\\w.@+-]+\\Z')],
+        help_text='Ник'
+    )
+    email = models.EmailField(max_length=254, unique=True, help_text='Почта')
     first_name = models.CharField(max_length=150, help_text='Имя')
     last_name = models.CharField(max_length=150, help_text='Фамилия')
     avatar = models.ImageField(upload_to='users/', help_text='Аватар')
@@ -26,10 +33,12 @@ class User(AbstractUser):
 
 class Subscription(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='subscriptions'
+        User, on_delete=models.CASCADE, related_name='followers',
+        help_text='Пользователь'
     )
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='followers'
+        User, on_delete=models.CASCADE, related_name='subscriptions',
+        help_text='Подписка'
     )
 
     class Meta:
@@ -50,13 +59,6 @@ class Tag(models.Model):
     name = models.CharField(max_length=32, unique=True, help_text='Имя')
     slug = models.SlugField(
         max_length=32,
-        validators=[
-            RegexValidator(
-                regex='^[-a-zA-Z0-9_]+$',
-                message='Некоретктный ник',
-                code='invalid_username'
-            )
-        ],
         unique=True,
         help_text='Уникальный идентификатор'
     )
@@ -101,7 +103,7 @@ class Recipe(models.Model):
     name = models.CharField(max_length=256, help_text='Имя')
     text = models.TextField(help_text='Описание')
     cooking_time = models.PositiveIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(525600)],
+        validators=[MinValueValidator(MIN_VALUE)],
         help_text='Время приготовления'
     )
     image = models.ImageField(help_text='Фото', upload_to='recipes')
@@ -129,18 +131,16 @@ class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='recipe_ingredients',
         help_text='Рецепт'
     )
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
-        related_name='ingredient_recipes',
         help_text='Рецепт'
     )
     amount = models.PositiveIntegerField(
         help_text='Рецепт',
-        validators=[MinValueValidator(1)]
+        validators=[MinValueValidator(MIN_VALUE)],
     )
 
     class Meta:
@@ -152,12 +152,13 @@ class RecipeIngredient(models.Model):
         ]
         verbose_name = 'Ингредиент в рецепте'
         verbose_name_plural = 'Ингредиенты в рецептах'
+        default_related_name = 'recipe_ingredients'
 
     def __str__(self):
         return f'{self.ingredient.name} — {self.amount}'
 
 
-class RecipeInteraction(models.Model):
+class UserInteraction(models.Model):
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE, help_text='Рецепт'
     )
@@ -179,13 +180,13 @@ class RecipeInteraction(models.Model):
         return f'{self.user} - {self.recipe}'
 
 
-class ShoppingCart(RecipeInteraction):
-    class Meta(RecipeInteraction.Meta):
+class ShoppingCart(UserInteraction):
+    class Meta(UserInteraction.Meta):
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
 
 
-class Favorite(RecipeInteraction):
-    class Meta(RecipeInteraction.Meta):
+class Favorite(UserInteraction):
+    class Meta(UserInteraction.Meta):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранные'
