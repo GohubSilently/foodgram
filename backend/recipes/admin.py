@@ -15,15 +15,14 @@ class CookinTimeFilter(admin.SimpleListFilter):
     def lookups(self, request, model_admin):
         queryset = model_admin.get_queryset(request)
         return (
-            ('1', f'Меньше 1 часа ({queryset.filter(
-                cooking_time__lt=60
-            ).count()})'),
-            ('2', f'Больше 1 часа ({queryset.filter(
-                cooking_time__gte=60, cooking_time__lt=1140
-            ).count()})'),
-            ('3', f'Больше 1 дня ({queryset.filter(
-                cooking_time__gte=1440
-            ).count()})'),
+            ('1', f'Меньше 1 часа ('
+                  f'{queryset.filter(cooking_time__lt=60).count()})'),
+            ('2', f'Больше 1 часа ('
+                  f'{queryset.filter(
+                      cooking_time__gte=60,
+                      cooking_time__lt=1140).count()})'),
+            ('3', f'Больше 1 дня ('
+                  f'{queryset.filter(cooking_time__gte=1440).count()})'),
         )
 
     def queryset(self, request, queryset):
