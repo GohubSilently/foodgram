@@ -98,7 +98,7 @@ class RecipeAdmin(admin.ModelAdmin):
     @admin.display(description='Теги')
     @mark_safe
     def display_tags(self, tag):
-        return f'{'<br>'.join(tag.name for tag in tag.tags.all())}'
+        return '<br>'.join(tag.name for tag in tag.tags.all())
 
     @admin.display(description='Ингредиенты')
     @mark_safe
