@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv(key='SECRET_KEY', default=get_random_secret_key())
 DEBUG = os.getenv(key='DEBUG', default='False').lower() == 'true'
 
-CSRF_TRUSTED_ORIGINS = [csrf for csrf in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')]
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
 ALLOWED_HOSTS = os.getenv(key='ALLOWED_HOSTS', default='localhost 127.0.0.1').split()
 CORS_ORIGIN_WHITELIST = os.getenv(key='CORS_ORIGIN_WHITELIST')
 
@@ -82,6 +82,7 @@ else:
     }
 
 AUTH_USER_MODEL = 'recipes.User'
+USERNAME_REGEX = r'^[\\w.@+-]+\\Z'
 
 AUTH_PASSWORD_VALIDATORS = [
     {

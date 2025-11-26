@@ -6,10 +6,10 @@ from recipes.models import (
     User, Subscription, Recipe, Tag, Ingredient, RecipeIngredient,
     Favorite, ShoppingCart
 )
-from .constants import MIN_VALUE
+from recipes.constants import MIN_VALUE_OF_AMOUNT_TIME
 
 
-class RecipeUserSerializer(UserSerializer):
+class UpgradeUserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
@@ -42,7 +42,7 @@ class UserAvatarSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class UserSubscriptionSerializer(UserSerializer):
+class UserSubscribeSerializer(UserSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.IntegerField(
         source='recipes.count', read_only=True
@@ -51,11 +51,12 @@ class UserSubscriptionSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         model = User
         fields = (*UserSerializer.Meta.fields, 'recipes', 'recipes_count',)
+        read_only_fields = fields
 
-    def get_recipes(self, obj):
+    def get_recipes(self, author):
         request = self.context.get('request')
         limit = request.query_params.get('recipes_limit')
-        recipes = Recipe.objects.filter(author=obj)
+        recipes = author.recipes
         if limit:
             recipes = recipes[:int(limit)]
         return RecipeShortSerializer(
@@ -77,7 +78,7 @@ class IngredientReadSerializer(serializers.ModelSerializer):
 
 class IngredientWriteSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField()
-    amount = serializers.IntegerField(min_value=MIN_VALUE)
+    amount = serializers.IntegerField(min_value=MIN_VALUE_OF_AMOUNT_TIME)
 
     class Meta:
         model = Ingredient
@@ -90,7 +91,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         queryset=Tag.objects.all(), many=True
     )
     image = Base64ImageField()
-    cooking_time = serializers.IntegerField(min_value=MIN_VALUE)
+    cooking_time = serializers.IntegerField(min_value=MIN_VALUE_OF_AMOUNT_TIME)
 
     class Meta:
         model = Recipe
@@ -123,7 +124,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         recipe = super().update(instance, validated_data)
         recipe.tags.set(tags)
         self.create_ingredients(recipe, ingredients)
-        return recipe
+        return super().update(instance, validated_data)
 
     def to_representation(self, instance):
         return RecipeReadSerializer(

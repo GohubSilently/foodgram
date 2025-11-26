@@ -1,17 +1,18 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import (
     RegexValidator, MinValueValidator
 )
 from django.db import models
 
-from api.constants import MIN_VALUE
+from .constants import MIN_VALUE_OF_AMOUNT_TIME
 
 
 class User(AbstractUser):
     username = models.CharField(
         max_length=150,
         unique=True,
-        validators=[RegexValidator('^[\\w.@+-]+\\Z')],
+        validators=[RegexValidator(settings.USERNAME_REGEX)],
         help_text='Ник'
     )
     email = models.EmailField(max_length=254, unique=True, help_text='Почта')
@@ -37,7 +38,7 @@ class Subscription(models.Model):
         help_text='Пользователь'
     )
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='subscriptions',
+        User, on_delete=models.CASCADE, related_name='following',
         help_text='Подписка'
     )
 
@@ -60,16 +61,14 @@ class Tag(models.Model):
     slug = models.SlugField(
         max_length=32,
         unique=True,
-        help_text='Уникальный идентификатор'
+        help_text='Идентификатор'
     )
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['name', 'slug'],
-                name='unique_tag',
-            )
-        ]
+        models.UniqueConstraint(
+            fields=['name', 'slug'],
+            name='unique_tag',
+        )
         ordering = ('name',)
         verbose_name = 'Тег'
         verbose_name_plural = 'Теги'
@@ -103,7 +102,7 @@ class Recipe(models.Model):
     name = models.CharField(max_length=256, help_text='Имя')
     text = models.TextField(help_text='Описание')
     cooking_time = models.PositiveIntegerField(
-        validators=[MinValueValidator(MIN_VALUE)],
+        validators=[MinValueValidator(MIN_VALUE_OF_AMOUNT_TIME)],
         help_text='Время приготовления'
     )
     image = models.ImageField(help_text='Фото', upload_to='recipes')
@@ -140,7 +139,7 @@ class RecipeIngredient(models.Model):
     )
     amount = models.PositiveIntegerField(
         help_text='Рецепт',
-        validators=[MinValueValidator(MIN_VALUE)],
+        validators=[MinValueValidator(MIN_VALUE_OF_AMOUNT_TIME)],
     )
 
     class Meta:
@@ -158,7 +157,7 @@ class RecipeIngredient(models.Model):
         return f'{self.ingredient.name} — {self.amount}'
 
 
-class UserInteraction(models.Model):
+class RecipeUserRelation(models.Model):
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE, help_text='Рецепт'
     )
@@ -180,13 +179,13 @@ class UserInteraction(models.Model):
         return f'{self.user} - {self.recipe}'
 
 
-class ShoppingCart(UserInteraction):
-    class Meta(UserInteraction.Meta):
+class ShoppingCart(RecipeUserRelation):
+    class Meta(RecipeUserRelation.Meta):
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
 
 
-class Favorite(UserInteraction):
-    class Meta(UserInteraction.Meta):
+class Favorite(RecipeUserRelation):
+    class Meta(RecipeUserRelation.Meta):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранные'

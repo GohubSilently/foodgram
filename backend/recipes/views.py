@@ -6,5 +6,5 @@ from .models import Recipe
 
 def short_link(request, pk):
     if not Recipe.objects.filter(recipe=pk).exists():
-        raise Http404('Рецепта не сущетсвует!')
+        raise Http404(f'Рецета {pk} не существует!')
     return redirect(f'/recipes/{pk}/')

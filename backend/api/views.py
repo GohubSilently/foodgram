@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from rest_framework import viewsets, status
@@ -16,13 +17,13 @@ from .permissions import IsOwnerOrReadOnly
 from .serializers import (
     TagSerializer, IngredientReadSerializer, RecipeReadSerializer,
     RecipeCreateUpdateSerializer, UserAvatarSerializer,
-    UserSubscriptionSerializer, UserSerializer, RecipeShortSerializer
+    UserSubscribeSerializer, UpgradeUserSerializer, RecipeShortSerializer
 )
 
 
 class RecipeUserViewSet(UserViewSet):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = UpgradeUserSerializer
     pagination_class = Pagination
 
     @action(
@@ -48,8 +49,8 @@ class RecipeUserViewSet(UserViewSet):
     )
     def subscriptions(self, request):
         return Response(
-            UserSubscriptionSerializer(
-                User.objects.filter(subscriptions__user=request.user),
+            UserSubscribeSerializer(
+                User.objects.filter(following__user=request.user),
                 context={'request': request},
                 many=True
             ).data
@@ -61,25 +62,28 @@ class RecipeUserViewSet(UserViewSet):
     )
     def subscribe(self, request, id=None):
         user = request.user
-        author = get_object_or_404(User, pk=id)
-        if user == author:
-            raise ValidationError('Нельзя подписаться на самого себя!')
+        author_id = self.kwargs.get('id')
+        if user.id == int(author_id):
+            raise ValidationError(
+                'Нельзя подписаться или отписаться на самого себя!'
+            )
         if request.method == 'POST':
             subscription, create = Subscription.objects.get_or_create(
-                user=user, author=author
+                user=user, author_id=author_id
             )
             if not create:
                 raise ValidationError(
-                    'Вы уже подписаны на этого пользователя!'
+                    f'Вы уже подписаны на пользователя '
+                    f'{subscription.author.username}'
                 )
 
             return Response(
-                UserSubscriptionSerializer(
-                    author, context={'request': request}
+                UserSubscribeSerializer(
+                    subscription.author, context={'request': request}
                 ).data,
                 status=status.HTTP_201_CREATED)
         get_object_or_404(
-            Subscription.objects.filter(author_id=id)
+            Subscription, user=user, author_id=author_id
         ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -111,25 +115,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    def user_iteraction(self, model, serializer_class, request, pk):
+    def user_iteraction(self, model, request, pk):
         user = request.user
-        recipe = model.objects.filter(user=user, recipe_id=pk)
+        relation, created = model.objects.get_or_create(
+            user=user, recipe_id=pk
+        )
 
         if request.method == 'POST':
-            if recipe.exists():
+            if not created:
                 raise ValidationError('Рецепт уже есть в списке!')
-            recipe = model.objects.create(user=user, recipe_id=pk)
             return Response(
-                serializer_class(
-                    recipe.recipe,
+                RecipeShortSerializer(
+                    relation.recipe,
                     context={'request': request}
                 ).data,
                 status=status.HTTP_201_CREATED
             )
-
-        if not recipe.exists():
-            raise ValidationError('Такого рецепта нет!')
-        recipe.delete()
+        get_object_or_404(model, user=user, recipe_id=pk).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
@@ -139,7 +141,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def shopping_cart(self, request, pk=None):
         return self.user_iteraction(
             ShoppingCart,
-            RecipeShortSerializer,
             request,
             pk
         )
@@ -151,7 +152,18 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def favorite(self, request, pk=None):
         return self.user_iteraction(
             Favorite,
-            RecipeShortSerializer,
             request,
             pk
+        )
+
+    @action(
+        detail=True, methods=['get'], url_path='get-link',
+        permission_classes=(IsAuthenticated,)
+    )
+    def get_link(self, request, pk=None):
+        return Response(
+            {'short_link': request.build_absolute_uri(
+                reverse('recipes:short_link', kwargs={'pk': pk})
+            )
+            }
         )
