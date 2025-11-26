@@ -1,20 +1,19 @@
 import json
+import os
+
+from django.conf import settings
 from django.core.management import BaseCommand
 
 
 class ImportData(BaseCommand):
     model = None
 
-    def add_arguments(self, parser):
-        parser.add_argument(
-            'json_file',
-            type=str,
-            help='Абсолюьный путь до файла'
-        )
-
     def handle(self, *args, **kwargs):
+        file = os.path.join(
+            settings.BASE_DIR, 'data', f'{self.model.__name__.lower()}s.json'
+        )
         try:
-            with open(kwargs['json_file'], 'r') as file:
+            with open(file, 'r') as file:
                 data = self.model.objects.bulk_create(
                     [self.model(**row) for row in json.load(file)],
                     ignore_conflicts=True

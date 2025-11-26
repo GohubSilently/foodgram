@@ -70,14 +70,15 @@ docker compose down && docker compose up --build
 docker compose exec foodgram_backend python manage.py migrate
 docker compose exec foodgram_backend python manage.py collectstatic
 docker compose exec foodgram_backend cp -r /app/collected_static/. /backend_static/
-docker compose exec foodgram_backend python manage.py import_data /Users/vadim/PycharmProjects/foodgram/backend/data/ingredients.json
+docker compose exec foodgram_backend python manage.py load_ingredients ./appp/backend/data/ingredients.json
+docker compose exec foodgram_backend python manage.py load_tags ./appp/backend/data/tags.json
 ```
 
 5. Запустить проект докально
 ```
-git clone
-python3 -m venv venv && source venv/bin/activate
+git clone git@github.com:GohubSilently/foodgram.git
+cd backend && python3 -m venv venv && source venv/bin/activate
 python manage.py migrate
-python manage.py import_ingredients ./foodgram/backend/data/ingredients.json
-python manage.py import_tags ./foodgram/backend/data/tags.json
+python manage.py load_ingredients
+python manage.py load_tags
 ```
