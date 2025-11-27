@@ -34,10 +34,15 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
+          cache: npm
       - name: Install frontend dependencies
         run: |
           cd frontend/
-          npm ci
+          npm install
+        working-directory: ./frontend
+      - name: Build frontend
+        run: npm run build
+        working-directory: ./frontend
       - name: Test with flake8
         run: |
           python -m flake8 backend/
