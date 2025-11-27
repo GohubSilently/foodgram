@@ -1,4 +1,5 @@
 # FoodGram
+![Foodgram](https://github.com/GohubSilently/foodgram/actions/workflows/main.yml/badge.svg)
 
 FoodGram — это образовательный проект, созданный во время обучения в Яндекс Практикуме.
 Он позволяет пользователям создавать, хранить и делиться рецептами онлайн.
