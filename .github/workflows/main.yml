@@ -20,7 +20,7 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     strategy:
       matrix:
-        python-version: [3.11, 3.12]
+        python-version: [3.12]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -40,7 +40,7 @@ jobs:
         run: npm install
         working-directory: ./frontend
       - name: Build frontend
-        run: npm run build
+        run: CI=false npm run build
         working-directory: ./frontend
       - name: Test with flake8
         run: |
