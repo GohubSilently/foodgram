@@ -6,10 +6,10 @@ from recipes.models import (
     User, Subscription, Recipe, Tag, Ingredient, RecipeIngredient,
     Favorite, ShoppingCart
 )
-from recipes.constants import MIN_VALUE_OF_AMOUNT_TIME
+from recipes.constants import MIN_AMOUNT, MIN_COOKING_TIME
 
 
-class UpgradeUserSerializer(UserSerializer):
+class BaseUserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
@@ -42,7 +42,7 @@ class UserAvatarSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class UserSubscribeSerializer(UserSerializer):
+class UserRecipeSerializer(UserSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.IntegerField(
         source='recipes.count', read_only=True
@@ -78,7 +78,7 @@ class IngredientReadSerializer(serializers.ModelSerializer):
 
 class IngredientWriteSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField()
-    amount = serializers.IntegerField(min_value=MIN_VALUE_OF_AMOUNT_TIME)
+    amount = serializers.IntegerField(min_value=MIN_AMOUNT)
 
     class Meta:
         model = Ingredient
@@ -91,7 +91,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         queryset=Tag.objects.all(), many=True
     )
     image = Base64ImageField()
-    cooking_time = serializers.IntegerField(min_value=MIN_VALUE_OF_AMOUNT_TIME)
+    cooking_time = serializers.IntegerField(min_value=MIN_COOKING_TIME)
 
     class Meta:
         model = Recipe
@@ -121,9 +121,10 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
-        recipe = super().update(instance, validated_data)
-        recipe.tags.set(tags)
-        self.create_ingredients(recipe, ingredients)
+        super().update(instance, validated_data).tags.set(tags)
+        self.create_ingredients(
+            super().update(instance, validated_data), ingredients
+        )
         return super().update(instance, validated_data)
 
     def to_representation(self, instance):

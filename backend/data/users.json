@@ -1,0 +1,28 @@
+[{
+  "email": "kustov@gmail.com",
+  "username": "kustov",
+  "first_name": "Никита",
+  "last_name": "Кустов",
+  "password": "kustov12341234"
+},
+{
+  "email": "kirsanov@gmail.com",
+  "username": "kirsanov",
+  "first_name": "Денис",
+  "last_name": "Кирсанов",
+  "password": "kirsanov12341234"
+},
+{
+  "email": "yakovlev@gmail.com",
+  "username": "yakovlev",
+  "first_name": "Даниил",
+  "last_name": "Яковлев",
+  "password": "yakovlev12341234"
+},
+{
+  "email": "soboleva@gmail.com",
+  "username": "soboleva",
+  "first_name": "Маргарита",
+  "last_name": "Соболева",
+  "password": "soboleva12341234"
+}]

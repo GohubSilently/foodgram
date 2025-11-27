@@ -3,56 +3,56 @@ from django.contrib.auth.admin import UserAdmin
 from django.db.models import Count
 from django.utils.safestring import mark_safe
 
+from .constants import TRESHOLD_1, TRESHOLD_2
 from .models import (
     Ingredient, Tag, Recipe, User, Subscription, ShoppingCart, Favorite,
     RecipeIngredient
 )
 
 
-class BaseAdmin(admin.ModelAdmin):
+class TagIngredientMixin:
+    list_display = ('id', 'name', 'display_recipes_count',)
+
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(
-            display_count=Count('recipes')
+            display_recipes_count=Count('recipes')
         )
 
-    @admin.display(description='Количество использования в рецептах')
-    def display_count(self, obj):
-        return obj.display_count
-
-    class Meta:
-        abstract = True
+    @admin.display(description='В рецептах')
+    def display_recipes_count(self, obj):
+        return obj.display_recipes_count
 
 
 class CookinTimeFilter(admin.SimpleListFilter):
     title = 'cooking time'
     parameter_name = 'cooking_time'
 
+
     RANGES = {
-        '1': (0, 60),
-        '2': (61, 1440),
-        '3': (1441, 525600),
+        '1': (0, TRESHOLD_1),
+        '2': (TRESHOLD_1 + 1, TRESHOLD_2),
+        '3': (TRESHOLD_2 + 1, 525600),
     }
 
     def lookups(self, request, model_admin):
         queryset = model_admin.get_queryset(request)
 
         recipes = []
-        for key, (start, end) in self.RANGES.items():
-            count = queryset.filter(cooking_time__range=(start, end)).count()
+        for key, range_time in self.RANGES.items():
+            count = queryset.filter(cooking_time__range=(range_time)).count()
             if key == '1':
-                value = f'Меньше 1 чаваса ({count})'
+                value = f'Меньше 1 часа ({count})'
             elif key == '2':
-                value = f'От одного часа до дня ({count})'
+                value = f'От одного часа до 24 часов ({count})'
             elif key == '3':
-                value = f'Больше суток ({count})'
+                value = f'Больше 24 часов ({count})'
             recipes.append((key, value))
-
         return recipes
 
     def queryset(self, request, queryset):
-        if self.value() == self.RANGES:
-            start, end = self.RANGES[self.value()]
-            return queryset.filter(cooking_time__range=(start, end))
+        if self.value() in self.RANGES:
+            range_time = self.RANGES[self.value()]
+            return queryset.filter(cooking_time__range=(range_time))
         return queryset
 
 
@@ -61,14 +61,14 @@ class RecipeIngredientInline(admin.TabularInline):
 
 
 @admin.register(Tag)
-class TagAdmin(BaseAdmin):
-    list_display = ('id', 'name', 'slug', 'display_count')
+class TagAdmin(TagIngredientMixin, admin.ModelAdmin):
+    list_display = ('slug', *TagIngredientMixin.list_display)
     list_filter = ('name', 'slug')
 
 
 @admin.register(Ingredient)
-class IngredientAdmin(BaseAdmin):
-    list_display = ('id', 'name', 'measurement_unit', 'display_count')
+class IngredientAdmin(TagIngredientMixin, admin.ModelAdmin):
+    list_display = ('measurement_unit', *TagIngredientMixin.list_display)
     list_filter = ('name', 'measurement_unit')
 
 
@@ -81,13 +81,16 @@ class RecipeAdmin(admin.ModelAdmin):
     )
     list_select_related = ('author',)
     list_filter = ('author__username', 'tags__name', CookinTimeFilter)
+    search_fields = (
+        'name', 'author__username', 'tags__name', 'ingredients__name'
+    )
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         queryset = queryset.annotate(
             display_favorite=Count('favorites')
         ).prefetch_related(
-            'tags', 'ingredients',
+            'tags', 'ingredients'
         )
         return queryset
 
@@ -104,8 +107,8 @@ class RecipeAdmin(admin.ModelAdmin):
     @mark_safe
     def display_ingredients(self, ingredient):
         return '<br>'.join(
-            (f'{ingredient.name} ({ingredient.measurement_unit})'
-             for ingredient in ingredient.ingredients.all())
+            (f'{ingredient.ingredient.name} ({ingredient.amount} {ingredient.ingredient.measurement_unit})'
+             for ingredient in ingredient.recipe_ingredients.select_related('ingredient'))
         )
 
     @admin.display(description='Фото')
@@ -124,7 +127,7 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
 class UserAdmin(UserAdmin):
     list_display = (
         'id', 'email', 'username', 'first_name', 'last_name',
-        'display_following', 'display_followers', 'display_favorites',
+        'display_authors', 'display_followers', 'display_favorites',
         'display_avatar',
     )
 
@@ -133,7 +136,7 @@ class UserAdmin(UserAdmin):
         queryset = queryset.annotate(
             display_favorites=Count('favorites'),
             display_followers=Count('followers'),
-            display_following=Count('following'),
+            display_authors=Count('authors'),
         )
         return queryset
 
@@ -146,8 +149,8 @@ class UserAdmin(UserAdmin):
         return user.display_followers
 
     @admin.display(description='Подписчики')
-    def display_following(self, user):
-        return user.display_following
+    def display_authors(self, user):
+        return user.display_authors
 
     @admin.display(description='Аватар')
     @mark_safe
@@ -164,6 +167,6 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 
 @admin.register(Favorite, ShoppingCart)
-class FavoriteAdmin(admin.ModelAdmin):
+class ShoppingCartFavoriteAdmin(admin.ModelAdmin):
     list_display = ('id', 'recipe', 'user',)
     list_select_related = ('recipe', 'user',)

@@ -5,7 +5,7 @@ from django.core.validators import (
 )
 from django.db import models
 
-from .constants import MIN_VALUE_OF_AMOUNT_TIME
+from .constants import MIN_AMOUNT, MIN_COOKING_TIME
 
 
 class User(AbstractUser):
@@ -38,7 +38,7 @@ class Subscription(models.Model):
         help_text='Пользователь'
     )
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='following',
+        User, on_delete=models.CASCADE, related_name='authors',
         help_text='Подписка'
     )
 
@@ -65,10 +65,6 @@ class Tag(models.Model):
     )
 
     class Meta:
-        models.UniqueConstraint(
-            fields=['name', 'slug'],
-            name='unique_tag',
-        )
         ordering = ('name',)
         verbose_name = 'Тег'
         verbose_name_plural = 'Теги'
@@ -102,7 +98,7 @@ class Recipe(models.Model):
     name = models.CharField(max_length=256, help_text='Имя')
     text = models.TextField(help_text='Описание')
     cooking_time = models.PositiveIntegerField(
-        validators=[MinValueValidator(MIN_VALUE_OF_AMOUNT_TIME)],
+        validators=[MinValueValidator(MIN_COOKING_TIME)],
         help_text='Время приготовления'
     )
     image = models.ImageField(help_text='Фото', upload_to='recipes')
@@ -139,7 +135,7 @@ class RecipeIngredient(models.Model):
     )
     amount = models.PositiveIntegerField(
         help_text='Рецепт',
-        validators=[MinValueValidator(MIN_VALUE_OF_AMOUNT_TIME)],
+        validators=[MinValueValidator(MIN_AMOUNT)],
     )
 
     class Meta:

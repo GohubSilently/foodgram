@@ -17,13 +17,13 @@ from .permissions import IsOwnerOrReadOnly
 from .serializers import (
     TagSerializer, IngredientReadSerializer, RecipeReadSerializer,
     RecipeCreateUpdateSerializer, UserAvatarSerializer,
-    UserSubscribeSerializer, UpgradeUserSerializer, RecipeShortSerializer
+    UserRecipeSerializer, BaseUserSerializer, RecipeShortSerializer
 )
 
 
 class RecipeUserViewSet(UserViewSet):
     queryset = User.objects.all()
-    serializer_class = UpgradeUserSerializer
+    serializer_class = BaseUserSerializer
     pagination_class = Pagination
 
     @action(
@@ -49,8 +49,8 @@ class RecipeUserViewSet(UserViewSet):
     )
     def subscriptions(self, request):
         return Response(
-            UserSubscribeSerializer(
-                User.objects.filter(following__user=request.user),
+            UserRecipeSerializer(
+                User.objects.filter(authors__user=request.user),
                 context={'request': request},
                 many=True
             ).data
@@ -78,7 +78,7 @@ class RecipeUserViewSet(UserViewSet):
                 )
 
             return Response(
-                UserSubscribeSerializer(
+                UserRecipeSerializer(
                     subscription.author, context={'request': request}
                 ).data,
                 status=status.HTTP_201_CREATED)
@@ -117,13 +117,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def user_iteraction(self, model, request, pk):
         user = request.user
-        relation, created = model.objects.get_or_create(
-            user=user, recipe_id=pk
-        )
 
         if request.method == 'POST':
+            relation, created = model.objects.get_or_create(
+                user=user, recipe_id=pk
+            )
             if not created:
-                raise ValidationError('Рецепт уже есть в списке!')
+                raise ValidationError(
+                    f'Рецепт уже есть в {model._meta.verbose_name.lower()}!'
+                )
             return Response(
                 RecipeShortSerializer(
                     relation.recipe,
@@ -163,7 +165,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_link(self, request, pk=None):
         return Response(
             {'short_link': request.build_absolute_uri(
-                reverse('recipes:short_link', kwargs={'pk': pk})
+                reverse('recipes:short_link', args=[pk])
             )
             }
         )

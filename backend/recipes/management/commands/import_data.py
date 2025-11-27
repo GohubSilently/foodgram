@@ -14,17 +14,18 @@ class ImportData(BaseCommand):
         )
         try:
             with open(file, 'r') as file:
-                data = self.model.objects.bulk_create(
-                    [self.model(**row) for row in json.load(file)],
+                database_records = self.model.objects.bulk_create(
+                    (self.model(**row) for row in json.load(file)),
                     ignore_conflicts=True
                 )
 
                 self.stdout.write(self.style.SUCCESS(
-                    f'Загружено {len(data)}, '
+                    f'Загружено {len(database_records)}, '
                     f'{self.model._meta.verbose_name}а!\n'
                     f'Из файла {file.name}'
                 ))
         except Exception as e:
             self.stdout.write(self.style.ERROR(
                 f'Ошибка {e}\n'
+                f'Файл {file.name}\n'
             ))
