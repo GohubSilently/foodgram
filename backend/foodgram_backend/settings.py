@@ -82,7 +82,6 @@ else:
     }
 
 AUTH_USER_MODEL = 'recipes.User'
-USERNAME_REGEX = r'^[\\w.@+-]+\\Z'
 
 AUTH_PASSWORD_VALIDATORS = [
     {

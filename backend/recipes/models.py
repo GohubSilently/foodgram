@@ -1,18 +1,17 @@
-from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import (
     RegexValidator, MinValueValidator
 )
 from django.db import models
 
-from .constants import MIN_AMOUNT, MIN_COOKING_TIME
+from .constants import MIN_AMOUNT, MIN_COOKING_TIME, USERNAME_REGEX
 
 
 class User(AbstractUser):
     username = models.CharField(
         max_length=150,
         unique=True,
-        validators=[RegexValidator(settings.USERNAME_REGEX)],
+        validators=[RegexValidator(USERNAME_REGEX)],
         help_text='Ник'
     )
     email = models.EmailField(max_length=254, unique=True, help_text='Почта')
