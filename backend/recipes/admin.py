@@ -106,11 +106,13 @@ class RecipeAdmin(admin.ModelAdmin):
     @mark_safe
     def display_ingredients(self, ingredient):
         return '<br>'.join(
-            (f'{ingredient.ingredient.name} ({ingredient.amount} '
-             f'{ingredient.ingredient.measurement_unit})'
-             for ingredient in ingredient.recipe_ingredients.select_related(
-                'ingredient')
-             )
+            (
+                f'{ingredient.ingredient.name} ({ingredient.amount} '
+                f'{ingredient.ingredient.measurement_unit})'
+                for ingredient in ingredient.recipe_ingredients.select_related(
+                    'ingredient'
+                )
+            )
         )
 
     @admin.display(description='Фото')
