@@ -5,8 +5,7 @@ from djoser.views import UserViewSet
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .filters import IngredientFilter, RecipeFilter
@@ -60,14 +59,6 @@ class RecipeUserViewSet(UserViewSet):
         return Response(UserRecipeSerializer(
             queryset, context={'request': request}, many=True
         ).data)
-
-        # return Response(
-        #     UserRecipeSerializer(
-        #         User.objects.filter(authors__user=request.user),
-        #         context={'request': request},
-        #         many=True
-        #     ).data
-        # )
 
     @action(
         detail=True, methods=['post', 'delete'], url_path='subscribe',

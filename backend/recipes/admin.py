@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 from django.db.models import Count
-from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from .models import (
@@ -41,7 +40,7 @@ class CookingTimeFilter(admin.SimpleListFilter):
 
     TRESHOLD_1 = 60
     TRESHOLD_2 = 1440
-    MAX_TIME = 60*24*365
+    MAX_TIME = 60 * 24 * 365
 
     RANGES = {
         '1': ((0, TRESHOLD_1), 'Меньше одного часа'),
