@@ -9,7 +9,7 @@ from recipes.models import (
 from recipes.constants import MIN_AMOUNT, MIN_COOKING_TIME
 
 
-class BaseUserSerializer(UserSerializer):
+class UserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
@@ -56,7 +56,7 @@ class UserRecipeSerializer(UserSerializer):
     def get_recipes(self, author):
         request = self.context.get('request')
         limit = request.query_params.get('recipes_limit')
-        recipes = author.recipes
+        recipes = author.recipes.all()
         if limit:
             recipes = recipes[:int(limit)]
         return RecipeShortSerializer(
@@ -122,10 +122,9 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         super().update(instance, validated_data).tags.set(tags)
-        self.create_ingredients(
+        return self.create_ingredients(
             super().update(instance, validated_data), ingredients
         )
-        return super().update(instance, validated_data)
 
     def to_representation(self, instance):
         return RecipeReadSerializer(
@@ -167,8 +166,8 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
     def user_relation(self, obj, model):
         user = self.context['request'].user
-        return (model.objects.filter(user=user, recipe=obj).exists()
-                and not user.is_anonymous())
+        return (not user.is_anonymous
+                and model.objects.filter(user=user, recipe=obj).exists())
 
     def get_is_favorited(self, obj):
         return self.user_relation(obj, Favorite)

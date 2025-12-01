@@ -5,7 +5,8 @@ from djoser.views import UserViewSet
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 from .filters import IngredientFilter, RecipeFilter
@@ -17,13 +18,13 @@ from .permissions import IsOwnerOrReadOnly
 from .serializers import (
     TagSerializer, IngredientReadSerializer, RecipeReadSerializer,
     RecipeCreateUpdateSerializer, UserAvatarSerializer,
-    UserRecipeSerializer, BaseUserSerializer, RecipeShortSerializer
+    UserRecipeSerializer, UserSerializer, RecipeShortSerializer
 )
 
 
 class RecipeUserViewSet(UserViewSet):
     queryset = User.objects.all()
-    serializer_class = BaseUserSerializer
+    serializer_class = UserSerializer
     pagination_class = Pagination
 
     @action(
@@ -45,16 +46,28 @@ class RecipeUserViewSet(UserViewSet):
 
     @action(
         detail=False, methods=['get'], url_path='subscriptions',
-        permission_classes=(IsAuthenticated,), pagination_class=Pagination
+        permission_classes=(IsAuthenticated,),
     )
     def subscriptions(self, request):
-        return Response(
-            UserRecipeSerializer(
-                User.objects.filter(authors__user=request.user),
+        queryset = User.objects.filter(authors__user=request.user)
+
+        if self.paginate_queryset(queryset) is not None:
+            return self.get_paginated_response(UserRecipeSerializer(
+                self.paginate_queryset(queryset),
                 context={'request': request},
                 many=True
-            ).data
-        )
+            ).data)
+        return Response(UserRecipeSerializer(
+            queryset, context={'request': request}, many=True
+        ).data)
+
+        # return Response(
+        #     UserRecipeSerializer(
+        #         User.objects.filter(authors__user=request.user),
+        #         context={'request': request},
+        #         many=True
+        #     ).data
+        # )
 
     @action(
         detail=True, methods=['post', 'delete'], url_path='subscribe',
@@ -119,16 +132,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
         user = request.user
 
         if request.method == 'POST':
-            relation, created = model.objects.get_or_create(
+            _, created = model.objects.get_or_create(
                 user=user, recipe_id=pk
             )
             if not created:
                 raise ValidationError(
-                    f'Рецепт уже есть в {model._meta.verbose_name.lower()}!'
+                    f'{_.recipe.name} уже есть в '
+                    f'{model._meta.verbose_name.lower()}!'
                 )
             return Response(
                 RecipeShortSerializer(
-                    relation.recipe,
+                    _.recipe,
                     context={'request': request}
                 ).data,
                 status=status.HTTP_201_CREATED
@@ -160,11 +174,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True, methods=['get'], url_path='get-link',
-        permission_classes=(IsAuthenticated,)
     )
     def get_link(self, request, pk=None):
         return Response(
-            {'short_link': request.build_absolute_uri(
+            {'short-link': request.build_absolute_uri(
                 reverse('recipes:short_link', args=[pk])
             )
             }
