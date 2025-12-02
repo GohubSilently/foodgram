@@ -3,6 +3,7 @@ from django.core.validators import (
     RegexValidator, MinValueValidator
 )
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 from .constants import MIN_AMOUNT, MIN_COOKING_TIME, USERNAME_REGEX
 
@@ -12,7 +13,8 @@ class User(AbstractUser):
         max_length=150,
         unique=True,
         validators=[RegexValidator(USERNAME_REGEX)],
-        help_text='Ник'
+        help_text='Ник',
+        verbose_name=_('Ник')
     )
     email = models.EmailField(max_length=254, unique=True, help_text='Почта')
     first_name = models.CharField(max_length=150, help_text='Имя')
@@ -56,7 +58,10 @@ class Subscription(models.Model):
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=32, unique=True, help_text='Имя')
+    name = models.CharField(
+        max_length=32, unique=True, help_text='Имя',
+        verbose_name=_('Название')
+    )
     slug = models.SlugField(
         max_length=32,
         unique=True,
@@ -75,7 +80,8 @@ class Tag(models.Model):
 class Ingredient(models.Model):
     name = models.CharField(max_length=128, help_text='Имя')
     measurement_unit = models.CharField(
-        max_length=64, help_text='Единица измерения'
+        max_length=64, help_text='Единица измерения',
+        verbose_name=_('Еденица измерения'),
     )
 
     class Meta:
@@ -94,11 +100,13 @@ class Ingredient(models.Model):
 
 
 class Recipe(models.Model):
-    name = models.CharField(max_length=256, help_text='Имя')
+    name = models.CharField(
+        max_length=256, help_text='Имя'
+    )
     text = models.TextField(help_text='Описание')
     cooking_time = models.PositiveIntegerField(
         validators=[MinValueValidator(MIN_COOKING_TIME)],
-        help_text='Время приготовления'
+        help_text='Время приготовления',
     )
     image = models.ImageField(help_text='Фото', upload_to='recipes')
     created_at = models.DateTimeField(

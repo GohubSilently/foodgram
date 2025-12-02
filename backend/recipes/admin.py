@@ -2,8 +2,11 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 from django.db.models import Count
+from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django.utils.translation.trans_null import gettext_lazy as _
 
+from .forms import RecipeImageForm, UserAvatarForm
 from .models import (
     Ingredient, Tag, Recipe, User, Subscription, ShoppingCart, Favorite,
     RecipeIngredient
@@ -13,57 +16,48 @@ from .models import (
 admin.site.unregister(Group)
 
 
-class Mixin:
-    list_display = ('id', 'display_name', 'recipes_count',)
+class RecipeCountMixin:
+    list_display = ('recipes_count',)
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(
             recipes_count=Count('recipes')
         )
 
-    @admin.display(description='В рецептах')
+    @admin.display(description='Рецепты')
     def recipes_count(self, obj):
         return obj.recipes_count
 
-    @admin.display(description='Название')
-    def display_name(self, obj):
-        return f'{obj.name}'
-
-    @admin.display(description='Идентификатор')
-    def display_slug(self, tag):
-        return f'{tag.slug}'
-
 
 class CookingTimeFilter(admin.SimpleListFilter):
-    title = 'cooking time'
+    title = _('Время приготовления')
     parameter_name = 'cooking_time'
 
     TRESHOLD_1 = 60
-    TRESHOLD_2 = 1440
-    MAX_TIME = 60 * 24 * 365
+    TRESHOLD_2 = 60 * 24
+    MAX_TIME = 1e6
 
     RANGES = {
         '1': ((0, TRESHOLD_1), 'Меньше одного часа'),
         '2': ((TRESHOLD_1 + 1, TRESHOLD_2), 'От одного часа до 24 часов'),
-        '3': ((TRESHOLD_2 + 1, 525600), 'Больше 24 часов'),
+        '3': ((TRESHOLD_2 + 1, MAX_TIME), 'Больше 24 часов'),
     }
 
     def lookups(self, request, model_admin):
         queryset = model_admin.get_queryset(request)
 
-        recipes = []
+        cooking_time = []
         for key, (range_time, text) in self.RANGES.items():
-            start, end = range_time
-            count = queryset.filter(cooking_time__range=(start, end)).count()
-            recipes.append((key, f'{text} ({count})'))
-        return recipes
+            count = queryset.filter(cooking_time__range=(range_time)).count()
+            cooking_time.append((key, f'{text} ({count})'))
+        return cooking_time
 
-    def queryset(self, request, queryset):
+    def queryset(self, request, recipes):
         if self.value() in self.RANGES:
-            return queryset.filter(
+            return recipes.filter(
                 cooking_time__range=(self.RANGES[self.value()])
             )
-        return queryset
+        return recipes
 
 
 class RecipeIngredientInline(admin.TabularInline):
@@ -71,22 +65,40 @@ class RecipeIngredientInline(admin.TabularInline):
 
 
 @admin.register(Tag)
-class TagAdmin(Mixin, admin.ModelAdmin):
-    list_display = (*Mixin.list_display, 'display_slug')
+class TagAdmin(RecipeCountMixin, admin.ModelAdmin):
+    list_display = (
+        *RecipeCountMixin.list_display, 'id', 'display_name', 'display_slug')
+
+
+    @admin.display(description='Название')
+    def display_name(self, obj):
+        return obj.name
 
     @admin.display(description='Идентификатор')
     def display_slug(self, tag):
-        return f'{tag.slug}'
+        return tag.slug
 
 
 @admin.register(Ingredient)
-class IngredientAdmin(Mixin, admin.ModelAdmin):
-    list_display = (*Mixin.list_display, 'display_measurement_unit')
+class IngredientAdmin(RecipeCountMixin, admin.ModelAdmin):
+    list_display = (
+        *RecipeCountMixin.list_display, 'id', 'display_name',
+        'display_measurement_unit'
+    )
     list_filter = ('measurement_unit',)
 
-    @admin.display(description='Меры измерения')
+    @admin.display(description='Название')
+    def display_name(self, obj):
+        return obj.name
+
+    @admin.display(description='Еденица измерения')
     def display_measurement_unit(self, ingredient):
-        return f'{ingredient.measurement_unit}'
+        return ingredient.measurement_unit
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields['measurement_unit'].label = 'Еденицы измерения'
+        return form
 
 
 @admin.register(Recipe)
@@ -94,8 +106,8 @@ class RecipeAdmin(admin.ModelAdmin):
     inlines = [RecipeIngredientInline]
     list_display = (
         'id', 'display_name', 'display_author', 'display_cooking_time',
-        'display_tags', 'display_ingredients', 'display_favorites',
-        'display_image',
+        'display_tags', 'display_ingredients',
+        'display_favorites', 'display_image', 'edit_image_link'
     )
     list_select_related = ('author',)
     list_filter = ('author__username', 'tags__name', CookingTimeFilter)
@@ -114,15 +126,15 @@ class RecipeAdmin(admin.ModelAdmin):
 
     @admin.display(description='Название')
     def display_name(self, recipe):
-        return f'{recipe.name}'
+        return recipe.name
 
     @admin.display(description='Автор')
     def display_author(self, recipe):
-        return f'{recipe.author}'
+        return recipe.author.username
 
-    @admin.display(description='Время приготовления')
+    @admin.display(description='Время (мин)')
     def display_cooking_time(self, recipe):
-        return f'{recipe.cooking_time}'
+        return recipe.cooking_time
 
     @admin.display(description='Избранное')
     def display_favorites(self, favorites):
@@ -149,6 +161,18 @@ class RecipeAdmin(admin.ModelAdmin):
     def display_image(self, recipe):
         return f'<img src="{recipe.image.url}" height="100" width="100">'
 
+    @admin.display(description='Изменить картинку')
+    @mark_safe
+    def edit_image_link(self, obj):
+        return f'<a href="{reverse(
+            'admin:recipes_recipe_change', args=[obj.pk]
+        )}">Измениить картинку</a>'
+
+    def get_form(self, request, obj=None, **kwargs):
+        if obj:
+            return RecipeImageForm
+        return super().get_form(request, obj, **kwargs)
+
 
 @admin.register(RecipeIngredient)
 class RecipeIngredientAdmin(admin.ModelAdmin):
@@ -157,11 +181,12 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
 
 
 @admin.register(User)
-class UserAdmin(UserAdmin):
+class UserAdmin(RecipeCountMixin, admin.ModelAdmin):
     list_display = (
         'id', 'display_email', 'display_username', 'display_fullname',
-        'display_recipes', 'display_authors', 'display_followers',
-        'display_favorites', 'display_avatar',
+        *RecipeCountMixin.list_display, 'display_authors',
+        'display_followers', 'display_favorites', 'display_avatar',
+        'edit_image_link'
     )
 
     def get_queryset(self, request):
@@ -170,25 +195,20 @@ class UserAdmin(UserAdmin):
             display_favorites=Count('favorites'),
             display_followers=Count('followers'),
             display_authors=Count('authors'),
-            display_recipes=Count('recipes'),
         )
         return queryset
 
     @admin.display(description='Почта')
     def display_email(self, user):
-        return f'{user.email}'
+        return user.email
 
     @admin.display(description='Ник')
     def display_username(self, user):
-        return f'{user.username}'
+        return user.username
 
     @admin.display(description='ФИО')
     def display_fullname(self, user):
         return f'{user.first_name} {user.last_name}'
-
-    @admin.display(description='Рецепты')
-    def display_recipes(self, user):
-        return user.display_recipes
 
     @admin.display(description='Избранное')
     def display_favorites(self, user):
@@ -209,11 +229,32 @@ class UserAdmin(UserAdmin):
             return ''
         return f'<img src="{user.avatar.url}" height="100" width="100">'
 
+    @admin.display(description='Изменить аватар')
+    @mark_safe
+    def edit_image_link(self, obj):
+        return f'<a href="{reverse(
+            'admin:recipes_user_change', args=[obj.pk]
+        )}">Измениить аватар</a>'
+
+    def get_form(self, request, obj=None, **kwargs):
+        if obj:
+            return UserAvatarForm
+        return super().get_form(request, obj, **kwargs)
+
+
 
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'author',)
+    list_display = ('id', 'display_user', 'display_author',)
     list_select_related = ('user', 'author',)
+
+    @admin.display(description='Пользователь')
+    def display_user(self, obj):
+        return obj.user.username
+
+    @admin.display(description='Автор')
+    def display_author(self, obj):
+        return obj.author.username
 
 
 @admin.register(Favorite, ShoppingCart)
@@ -223,8 +264,8 @@ class ShoppingCartFavoriteAdmin(admin.ModelAdmin):
 
     @admin.display(description='Рецепт')
     def display_recipe(self, obj):
-        return f'{obj.recipe.name}'
+        return obj.recipe.name
 
     @admin.display(description='Пользователь')
     def display_user(self, obj):
-        return f'{obj.user}'
+        return obj.user.username

@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
+from django.http import HttpResponse
 from djoser.views import UserViewSet
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -17,13 +18,13 @@ from .permissions import IsOwnerOrReadOnly
 from .serializers import (
     TagSerializer, IngredientReadSerializer, RecipeReadSerializer,
     RecipeCreateUpdateSerializer, UserAvatarSerializer,
-    UserRecipeSerializer, UserSerializer, RecipeShortSerializer
+    UserRecipeSerializer, UserReadSerializer, RecipeShortSerializer
 )
 
 
 class RecipeUserViewSet(UserViewSet):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = UserReadSerializer
     pagination_class = Pagination
 
     @action(
@@ -49,15 +50,10 @@ class RecipeUserViewSet(UserViewSet):
     )
     def subscriptions(self, request):
         queryset = User.objects.filter(authors__user=request.user)
-
-        if self.paginate_queryset(queryset) is not None:
-            return self.get_paginated_response(UserRecipeSerializer(
-                self.paginate_queryset(queryset),
-                context={'request': request},
-                many=True
-            ).data)
-        return Response(UserRecipeSerializer(
-            queryset, context={'request': request}, many=True
+        return self.get_paginated_response(UserRecipeSerializer(
+            self.paginate_queryset(queryset),
+            context={'request': request},
+            many=True
         ).data)
 
     @action(
@@ -122,24 +118,25 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def user_iteraction(self, model, request, pk):
         user = request.user
 
-        if request.method == 'POST':
-            _, created = model.objects.get_or_create(
-                user=user, recipe_id=pk
+        if request.method == 'DELETE':
+            get_object_or_404(model, user=user, recipe_id=pk).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        _, created = model.objects.get_or_create(
+            user=user, recipe_id=pk
+        )
+        if not created:
+            raise ValidationError(
+                f'{_.recipe.name} уже есть в '
+                f'{model._meta.verbose_name.lower()}!'
             )
-            if not created:
-                raise ValidationError(
-                    f'{_.recipe.name} уже есть в '
-                    f'{model._meta.verbose_name.lower()}!'
-                )
-            return Response(
-                RecipeShortSerializer(
-                    _.recipe,
-                    context={'request': request}
-                ).data,
-                status=status.HTTP_201_CREATED
-            )
-        get_object_or_404(model, user=user, recipe_id=pk).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            RecipeShortSerializer(
+                _.recipe,
+                context={'request': request}
+            ).data,
+            status=status.HTTP_201_CREATED
+        )
+
 
     @action(
         detail=True, methods=['post', 'delete'], url_path='shopping_cart',
@@ -173,3 +170,31 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
             }
         )
+
+    @action(
+        detail=False, methods=['get'], url_path='download_shopping_cart',
+        permission_classes=(IsAuthenticated,)
+    )
+    def download_shopping_cart(self, request):
+        user = request.user
+        recipes = ShoppingCart.objects.filter(
+            user=user
+        ).select_related('recipe')
+
+        if not recipes:
+            raise ValidationError('Список пуст!')
+
+        ingredients = {}
+        for item in recipes:
+            for item in item.recipe.recipe_ingredients.all():
+                key = (item.ingredient.name, item.ingredient.measurement_unit)
+                ingredients[key] = ingredients.get(key, 0) + item.amount
+
+        lines = [f"{name} — {amount} {unit}\n" for (name, unit), amount in
+                 ingredients.items()]
+
+        response = HttpResponse(content_type='text/plain')
+        response[
+            'Content-Disposition'] = 'attachment; filename="shopping_list.txt"'
+        response.writelines(lines)
+        return response

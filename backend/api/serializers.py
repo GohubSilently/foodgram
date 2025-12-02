@@ -9,7 +9,7 @@ from recipes.models import (
 from recipes.constants import MIN_AMOUNT, MIN_COOKING_TIME
 
 
-class UserSerializer(UserSerializer):
+class UserReadSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
@@ -122,9 +122,8 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         super().update(instance, validated_data).tags.set(tags)
-        return self.create_ingredients(
-            super().update(instance, validated_data), ingredients
-        )
+        self.create_ingredients(instance, ingredients)
+        return super().update(instance, validated_data), ingredients
 
     def to_representation(self, instance):
         return RecipeReadSerializer(
@@ -148,7 +147,7 @@ class RecipeIngredientReadSerializer(serializers.ModelSerializer):
 
 class RecipeReadSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
-    author = UserSerializer(read_only=True)
+    author = UserReadSerializer(read_only=True)
     ingredients = RecipeIngredientReadSerializer(
         many=True,
         source='recipe_ingredients'
