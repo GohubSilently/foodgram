@@ -230,9 +230,9 @@ class UserAdmin(RecipeCountMixin, admin.ModelAdmin):
     @admin.display(description='Изменить аватар')
     @mark_safe
     def edit_image_link(self, obj):
-        return f'<a href="{reverse(
+        return f"""<a href="{reverse(
             'admin:recipes_user_change', args=[obj.pk]
-        )}">Измениить аватар</a>'
+        )}">Измениить аватар</a>"""
 
     def get_form(self, request, obj=None, **kwargs):
         if obj:
