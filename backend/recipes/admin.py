@@ -162,9 +162,9 @@ class RecipeAdmin(admin.ModelAdmin):
     @admin.display(description='Изменить картинку')
     @mark_safe
     def edit_image_link(self, obj):
-        return f'<a href="{reverse(
+        return f"<a href='{reverse(
             'admin:recipes_recipe_change', args=[obj.pk]
-        )}">Измениить картинку</a>'
+        )}'>Измениить картинку</a>"
 
     def get_form(self, request, obj=None, **kwargs):
         if obj:
