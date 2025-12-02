@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 from django.db.models import Count
 from django.urls import reverse
@@ -68,7 +67,6 @@ class RecipeIngredientInline(admin.TabularInline):
 class TagAdmin(RecipeCountMixin, admin.ModelAdmin):
     list_display = (
         *RecipeCountMixin.list_display, 'id', 'display_name', 'display_slug')
-
 
     @admin.display(description='Название')
     def display_name(self, obj):
@@ -240,7 +238,6 @@ class UserAdmin(RecipeCountMixin, admin.ModelAdmin):
         if obj:
             return UserAvatarForm
         return super().get_form(request, obj, **kwargs)
-
 
 
 @admin.register(Subscription)

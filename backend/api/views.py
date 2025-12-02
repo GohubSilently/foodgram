@@ -137,7 +137,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
-
     @action(
         detail=True, methods=['post', 'delete'], url_path='shopping_cart',
         permission_classes=(IsAuthenticated,)
