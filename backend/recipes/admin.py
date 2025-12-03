@@ -1,11 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.models import Group
 from django.db.models import Count
-from django.urls import reverse
 from django.utils.safestring import mark_safe
-from django.utils.translation.trans_null import gettext_lazy as _
 
-from .constants import LESS_ONE_HOUR, ONE_HOUR_TO_ONE_DAY, MORE_ONE_DAY
+from .forms import UserChangeForm
 from .models import (
     Ingredient, Tag, Recipe, User, Subscription, ShoppingCart, Favorite,
     RecipeIngredient
@@ -29,8 +27,12 @@ class RecipeCountMixin:
 
 
 class CookingTimeFilter(admin.SimpleListFilter):
-    title = _('Время приготовления')
+    title = 'Время приготовления'
     parameter_name = 'cooking_time'
+
+    LESS_ONE_HOUR = 'Меньше одного часа'
+    ONE_HOUR_TO_ONE_DAY = 'От одного часа до 24 часов'
+    MORE_ONE_DAY = 'Больше 24 часов'
 
     TRESHOLD_1 = 60
     TRESHOLD_2 = 60 * 24
@@ -109,13 +111,14 @@ class RecipeAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'display_name', 'display_author', 'display_cooking_time',
         'display_tags', 'display_ingredients',
-        'display_favorites', 'display_image', 'edit_image_link'
+        'display_favorites', 'display_image',
     )
     list_select_related = ('author',)
     list_filter = ('author__username', 'tags__name', CookingTimeFilter)
     search_fields = (
         'name', 'author__username', 'tags__name', 'ingredients__name'
     )
+    readonly_fields = ('display_image',)
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -161,14 +164,7 @@ class RecipeAdmin(admin.ModelAdmin):
     @admin.display(description='Картинка')
     @mark_safe
     def display_image(self, recipe):
-        return f'<img src="{recipe.image.url}" height="100" width="100">'
-
-    @admin.display(description='Изменить рецепт')
-    @mark_safe
-    def edit_image_link(self, obj):
-        return f"""<a href="{reverse(
-            'admin:recipes_recipe_change', args=[obj.pk]
-        )}">Изменить</a>"""
+        return f'<img src="{recipe.image.url}" height="200" width="200">'
 
 
 @admin.register(RecipeIngredient)
@@ -179,12 +175,13 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class UserAdmin(RecipeCountMixin, admin.ModelAdmin):
+    form = UserChangeForm
     list_display = (
         'id', 'display_email', 'display_username', 'display_fullname',
         *RecipeCountMixin.list_display, 'display_authors',
         'display_followers', 'display_favorites', 'display_avatar',
-        'edit_image_link'
     )
+    readonly_fields = ('display_avatar',)
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -224,14 +221,7 @@ class UserAdmin(RecipeCountMixin, admin.ModelAdmin):
     def display_avatar(self, user):
         if not user.avatar:
             return ''
-        return f'<img src="{user.avatar.url}" height="100" width="100">'
-
-    @admin.display(description='Изменить пользователя')
-    @mark_safe
-    def edit_image_link(self, obj):
-        return f"""<a href="{reverse(
-            'admin:recipes_user_change', args=[obj.pk]
-        )}">Измениить</a>"""
+        return f'<img src="{user.avatar.url}" height="200" width="200">'
 
 
 @admin.register(Subscription)

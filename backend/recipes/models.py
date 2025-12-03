@@ -3,7 +3,6 @@ from django.core.validators import (
     RegexValidator, MinValueValidator
 )
 from django.db import models
-from django.utils.translation import gettext_lazy as _
 
 from .constants import MIN_AMOUNT, MIN_COOKING_TIME, USERNAME_REGEX
 
@@ -13,13 +12,14 @@ class User(AbstractUser):
         max_length=150,
         unique=True,
         validators=[RegexValidator(USERNAME_REGEX)],
-        help_text='Ник',
-        verbose_name=_('Авторы')
+        verbose_name='Ник'
     )
-    email = models.EmailField(max_length=254, unique=True, help_text='Почта')
-    first_name = models.CharField(max_length=150, help_text='Имя')
-    last_name = models.CharField(max_length=150, help_text='Фамилия')
-    avatar = models.ImageField(upload_to='users/', help_text='Аватар')
+    email = models.EmailField(
+        max_length=254, unique=True, verbose_name='Почта'
+    )
+    first_name = models.CharField(max_length=150, verbose_name='Имя')
+    last_name = models.CharField(max_length=150, verbose_name='Фамилия')
+    avatar = models.ImageField(upload_to='users/', verbose_name='Аватар')
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
@@ -36,11 +36,11 @@ class User(AbstractUser):
 class Subscription(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='followers',
-        help_text='Пользователь'
+        verbose_name='Пользователь'
     )
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='authors',
-        help_text='Подписка'
+        verbose_name='Подписка'
     )
 
     class Meta:
@@ -60,12 +60,12 @@ class Subscription(models.Model):
 class Tag(models.Model):
     name = models.CharField(
         max_length=32, unique=True, help_text='Имя',
-        verbose_name=_('Теги')
+        verbose_name='Название'
     )
     slug = models.SlugField(
         max_length=32,
         unique=True,
-        help_text='Идентификатор'
+        verbose_name='Идентификатор'
     )
 
     class Meta:
@@ -78,10 +78,10 @@ class Tag(models.Model):
 
 
 class Ingredient(models.Model):
-    name = models.CharField(max_length=128, help_text='Имя')
+    name = models.CharField(max_length=128, verbose_name='Название')
     measurement_unit = models.CharField(
-        max_length=64, help_text='Единица измерения',
-        verbose_name=_('Единица измерения'),
+        max_length=64,
+        verbose_name='Единица измерения'
     )
 
     class Meta:
@@ -101,23 +101,25 @@ class Ingredient(models.Model):
 
 class Recipe(models.Model):
     name = models.CharField(
-        max_length=256, help_text='Имя'
+        max_length=256, help_text='Имя', verbose_name='Название'
     )
-    text = models.TextField(help_text='Описание')
+    text = models.TextField(verbose_name='Описание')
     cooking_time = models.PositiveIntegerField(
         validators=[MinValueValidator(MIN_COOKING_TIME)],
-        help_text='Время приготовления',
+        verbose_name='Время приготовления',
     )
-    image = models.ImageField(help_text='Фото', upload_to='recipes')
+    image = models.ImageField(verbose_name='Фото', upload_to='recipes')
     created_at = models.DateTimeField(
-        auto_now_add=True, help_text='Время создания'
+        auto_now_add=True, verbose_name='Время создания'
     )
 
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE, help_text='Автор'
+        User, on_delete=models.CASCADE, verbose_name='Автор'
     )
-    tags = models.ManyToManyField(Tag, help_text='Теги')
-    ingredients = models.ManyToManyField(Ingredient, help_text='Ингредиенты')
+    tags = models.ManyToManyField(Tag, verbose_name='Теги')
+    ingredients = models.ManyToManyField(
+        Ingredient, verbose_name='Ингредиенты'
+    )
 
     class Meta:
         ordering = ('-created_at',)
@@ -133,15 +135,15 @@ class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        help_text='Рецепт'
+        verbose_name='Рецепт'
     )
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
-        help_text='Рецепт'
+        verbose_name='Ингредиент'
     )
     amount = models.PositiveIntegerField(
-        help_text='Рецепт',
+        verbose_name='Количество',
         validators=[MinValueValidator(MIN_AMOUNT)],
     )
 
@@ -162,10 +164,10 @@ class RecipeIngredient(models.Model):
 
 class RecipeUserRelation(models.Model):
     recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE, help_text='Рецепт'
+        Recipe, on_delete=models.CASCADE, verbose_name='Рецепт'
     )
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, help_text='Пользователь'
+        User, on_delete=models.CASCADE, verbose_name='Пользователь'
     )
 
     class Meta:

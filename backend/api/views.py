@@ -1,5 +1,3 @@
-import io
-
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
@@ -180,9 +178,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def download_shopping_cart(self, request):
         user = request.user
-        recipes = ShoppingCart.objects.filter(
-            user=user
-        ).select_related('recipe')
+        recipes = user.shopping_cart.objects.select_related('recipe')
 
         ingredients = {}
         for items in recipes:
@@ -192,7 +188,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         ingredient_list = [
             {
-                'name': name,
+                'name': sorted(name),
                 'unit': unit,
                 'amount': amount,
             }
@@ -207,11 +203,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             for item in recipes
         ]
 
-        buffer = io.BytesIO(
-            render_shopping_list(user, ingredient_list, recipe).encode('utf-8')
-        )
         return FileResponse(
-            buffer,
+            render_shopping_list(user, ingredient_list, recipe),
             as_attachment=True,
             filename='shopping_cart.pdf',
             content_type='text/plain'

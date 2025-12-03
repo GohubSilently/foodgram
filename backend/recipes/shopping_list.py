@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from django.template import Engine, Context
 
 
@@ -19,7 +20,7 @@ def render_shopping_list(user, ingredients, recipes):
 
     template = Engine().from_string(template_str)
     return template.render(Context({
-        "date": datetime.now().strftime("%d.%m.%Y"),
+        "date": datetime.now().strftime("%d %B %Y"),
         "ingredients": ingredients,
         "recipes": recipes,
         "user": user,
