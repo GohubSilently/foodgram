@@ -198,7 +198,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 for (name, unit), amount in ingredients.items()
             ],
             key=lambda ingredient: ingredient['name']
-    )
+        )
 
         recipe = [
             {
