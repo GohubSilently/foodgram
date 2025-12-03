@@ -39,9 +39,9 @@ services:
       - backend
       - frontend
     volumes:
+      - ../docs/:/usr/share/nginx/html/docs/
       - backend_static:/staticfiles/backend_static
       - frontend_static:/staticfiles/frontend_static
       - media:/media
-      - ../docs/:/usr/share/nginx/html/api/docs/
     ports:
       - "8000:80"
