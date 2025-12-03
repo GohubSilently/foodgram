@@ -178,7 +178,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def download_shopping_cart(self, request):
         user = request.user
-        recipes = user.shopping_cart.objects.select_related('recipe')
+        recipes = user.shoppingcarts.select_related('recipe')
 
         ingredients = {}
         for items in recipes:
@@ -186,14 +186,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 key = (item.ingredient.name, item.ingredient.measurement_unit)
                 ingredients[key] = ingredients.get(key, 0) + item.amount
 
-        ingredient_list = [
-            {
-                'name': sorted(name),
-                'unit': unit,
-                'amount': amount,
-            }
-            for (name, unit), amount in ingredients.items()
-        ]
+        ingredient_list = sorted(
+            [
+                {
+                    'name': name,
+                    'unit': ''.join(
+                        unit for unit in unit if unit.isalpha()
+                    ),
+                    'amount': amount
+                }
+                for (name, unit), amount in ingredients.items()
+            ],
+            key=lambda ingredient: ingredient['name']
+    )
 
         recipe = [
             {
