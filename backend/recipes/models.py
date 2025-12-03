@@ -14,7 +14,7 @@ class User(AbstractUser):
         unique=True,
         validators=[RegexValidator(USERNAME_REGEX)],
         help_text='Ник',
-        verbose_name=_('Ник')
+        verbose_name=_('Авторы')
     )
     email = models.EmailField(max_length=254, unique=True, help_text='Почта')
     first_name = models.CharField(max_length=150, help_text='Имя')
@@ -60,7 +60,7 @@ class Subscription(models.Model):
 class Tag(models.Model):
     name = models.CharField(
         max_length=32, unique=True, help_text='Имя',
-        verbose_name=_('Название')
+        verbose_name=_('Теги')
     )
     slug = models.SlugField(
         max_length=32,
@@ -81,7 +81,7 @@ class Ingredient(models.Model):
     name = models.CharField(max_length=128, help_text='Имя')
     measurement_unit = models.CharField(
         max_length=64, help_text='Единица измерения',
-        verbose_name=_('Еденица измерения'),
+        verbose_name=_('Единица измерения'),
     )
 
     class Meta:

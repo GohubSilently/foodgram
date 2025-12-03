@@ -1,7 +1,9 @@
+import io
+
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
-from django.http import HttpResponse
+from django.http import HttpResponse, FileResponse
 from djoser.views import UserViewSet
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -10,9 +12,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .filters import IngredientFilter, RecipeFilter
-from recipes.models import (
-    Tag, Ingredient, Recipe, ShoppingCart, Favorite, User, Subscription
-)
 from .pagination import Pagination
 from .permissions import IsOwnerOrReadOnly
 from .serializers import (
@@ -20,6 +19,10 @@ from .serializers import (
     RecipeCreateUpdateSerializer, UserAvatarSerializer,
     UserRecipeSerializer, UserReadSerializer, RecipeShortSerializer
 )
+from recipes.models import (
+    Tag, Ingredient, Recipe, ShoppingCart, Favorite, User, Subscription
+)
+from recipes.shopping_list import render_shopping_list
 
 
 class RecipeUserViewSet(UserViewSet):
@@ -49,9 +52,10 @@ class RecipeUserViewSet(UserViewSet):
         permission_classes=(IsAuthenticated,),
     )
     def subscriptions(self, request):
-        queryset = User.objects.filter(authors__user=request.user)
         return self.get_paginated_response(UserRecipeSerializer(
-            self.paginate_queryset(queryset),
+            self.paginate_queryset(
+                User.objects.filter(authors__user=request.user)
+            ),
             context={'request': request},
             many=True
         ).data)
@@ -180,20 +184,33 @@ class RecipeViewSet(viewsets.ModelViewSet):
             user=user
         ).select_related('recipe')
 
-        if not recipes:
-            raise ValidationError('Список пуст!')
-
         ingredients = {}
-        for item in recipes:
-            for item in item.recipe.recipe_ingredients.all():
+        for items in recipes:
+            for item in items.recipe.recipe_ingredients.all():
                 key = (item.ingredient.name, item.ingredient.measurement_unit)
                 ingredients[key] = ingredients.get(key, 0) + item.amount
 
-        lines = [f"{name} — {amount} {unit}\n" for (name, unit), amount in
-                 ingredients.items()]
+        ingredient_list = [
+            {
+                'name': name,
+                'unit': unit,
+                'amount': amount,
+            }
+            for (name, unit), amount in ingredients.items()
+        ]
 
-        response = HttpResponse(content_type='text/plain')
-        response[
-            'Content-Disposition'] = 'attachment; filename="shopping_list.txt"'
-        response.writelines(lines)
-        return response
+        recipe = [
+            {
+                'name': item.recipe.name,
+                'author': item.recipe.author,
+            }
+            for item in recipes
+        ]
+
+        buffer = io.BytesIO(render_shopping_list(user, ingredient_list, recipe).encode('utf-8'))
+        return FileResponse(
+            buffer,
+            as_attachment=True,
+            filename='shopping_cart.pdf',
+            content_type='text/plain'
+        )

@@ -5,7 +5,8 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.translation.trans_null import gettext_lazy as _
 
-from .forms import RecipeImageForm, UserAvatarForm
+from .constants import LESS_ONE_HOUR, ONE_HOUR_TO_ONE_DAY, MORE_ONE_DAY
+from .forms import RecipeImageForm
 from .models import (
     Ingredient, Tag, Recipe, User, Subscription, ShoppingCart, Favorite,
     RecipeIngredient
@@ -34,22 +35,26 @@ class CookingTimeFilter(admin.SimpleListFilter):
 
     TRESHOLD_1 = 60
     TRESHOLD_2 = 60 * 24
-    MAX_TIME = 1e6
+    MAX_TIME = 1000000
 
     RANGES = {
-        '1': ((0, TRESHOLD_1), 'Меньше одного часа'),
-        '2': ((TRESHOLD_1 + 1, TRESHOLD_2), 'От одного часа до 24 часов'),
-        '3': ((TRESHOLD_2 + 1, MAX_TIME), 'Больше 24 часов'),
+        '1': ((0, TRESHOLD_1), LESS_ONE_HOUR),
+        '2': ((TRESHOLD_1 + 1, TRESHOLD_2), ONE_HOUR_TO_ONE_DAY),
+        '3': ((TRESHOLD_2 + 1, MAX_TIME), MORE_ONE_DAY),
     }
 
     def lookups(self, request, model_admin):
         queryset = model_admin.get_queryset(request)
-
-        cooking_time = []
-        for key, (range_time, text) in self.RANGES.items():
-            count = queryset.filter(cooking_time__range=(range_time)).count()
-            cooking_time.append((key, f'{text} ({count})'))
-        return cooking_time
+        return [
+            (
+                key,
+                "{} ({})".format(
+                    text,
+                    queryset.filter(cooking_time__range=range_time).count()
+                )
+            )
+             for key, (range_time, text) in self.RANGES.items()
+        ]
 
     def queryset(self, request, recipes):
         if self.value() in self.RANGES:
@@ -80,8 +85,8 @@ class TagAdmin(RecipeCountMixin, admin.ModelAdmin):
 @admin.register(Ingredient)
 class IngredientAdmin(RecipeCountMixin, admin.ModelAdmin):
     list_display = (
-        *RecipeCountMixin.list_display, 'id', 'display_name',
-        'display_measurement_unit'
+        'id', 'display_name', 'display_measurement_unit',
+        *RecipeCountMixin.list_display,
     )
     list_filter = ('measurement_unit',)
 
@@ -89,13 +94,13 @@ class IngredientAdmin(RecipeCountMixin, admin.ModelAdmin):
     def display_name(self, obj):
         return obj.name
 
-    @admin.display(description='Еденица измерения')
+    @admin.display(description='Единица измерения')
     def display_measurement_unit(self, ingredient):
         return ingredient.measurement_unit
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        form.base_fields['measurement_unit'].label = 'Еденицы измерения'
+        form.base_fields['measurement_unit'].label = 'Единицы измерения'
         return form
 
 
@@ -154,22 +159,17 @@ class RecipeAdmin(admin.ModelAdmin):
             )
         )
 
-    @admin.display(description='Фото')
+    @admin.display(description='Картинка')
     @mark_safe
     def display_image(self, recipe):
         return f'<img src="{recipe.image.url}" height="100" width="100">'
 
-    @admin.display(description='Изменить картинку')
+    @admin.display(description='Изменить рецепт')
     @mark_safe
     def edit_image_link(self, obj):
         return f"""<a href="{reverse(
             'admin:recipes_recipe_change', args=[obj.pk]
-        )}">Измениить картинку</a>"""
-
-    def get_form(self, request, obj=None, **kwargs):
-        if obj:
-            return RecipeImageForm
-        return super().get_form(request, obj, **kwargs)
+        )}">Изменить</a>"""
 
 
 @admin.register(RecipeIngredient)
@@ -227,17 +227,12 @@ class UserAdmin(RecipeCountMixin, admin.ModelAdmin):
             return ''
         return f'<img src="{user.avatar.url}" height="100" width="100">'
 
-    @admin.display(description='Изменить аватар')
+    @admin.display(description='Изменить пользователя')
     @mark_safe
     def edit_image_link(self, obj):
         return f"""<a href="{reverse(
             'admin:recipes_user_change', args=[obj.pk]
-        )}">Измениить аватар</a>"""
-
-    def get_form(self, request, obj=None, **kwargs):
-        if obj:
-            return UserAvatarForm
-        return super().get_form(request, obj, **kwargs)
+        )}">Измениить</a>"""
 
 
 @admin.register(Subscription)
