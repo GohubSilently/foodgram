@@ -6,7 +6,6 @@ from django.utils.safestring import mark_safe
 from django.utils.translation.trans_null import gettext_lazy as _
 
 from .constants import LESS_ONE_HOUR, ONE_HOUR_TO_ONE_DAY, MORE_ONE_DAY
-from .forms import RecipeImageForm
 from .models import (
     Ingredient, Tag, Recipe, User, Subscription, ShoppingCart, Favorite,
     RecipeIngredient
@@ -53,7 +52,7 @@ class CookingTimeFilter(admin.SimpleListFilter):
                     queryset.filter(cooking_time__range=range_time).count()
                 )
             )
-             for key, (range_time, text) in self.RANGES.items()
+            for key, (range_time, text) in self.RANGES.items()
         ]
 
     def queryset(self, request, recipes):

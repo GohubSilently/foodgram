@@ -3,7 +3,7 @@ import io
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
-from django.http import HttpResponse, FileResponse
+from django.http import FileResponse
 from djoser.views import UserViewSet
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -207,7 +207,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
             for item in recipes
         ]
 
-        buffer = io.BytesIO(render_shopping_list(user, ingredient_list, recipe).encode('utf-8'))
+        buffer = io.BytesIO(
+            render_shopping_list(user, ingredient_list, recipe).encode('utf-8')
+        )
         return FileResponse(
             buffer,
             as_attachment=True,
