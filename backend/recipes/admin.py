@@ -29,6 +29,7 @@ class RecipeCountMixin:
 class RecipeFilter(admin.SimpleListFilter):
     title = 'Есть рецепты'
     parameter_name = 'recipes'
+
     def lookups(self, request, model_admin):
         return (
             ('yes', 'Да'),
@@ -50,6 +51,7 @@ class RecipeFilter(admin.SimpleListFilter):
 class SubscriptionFilter(admin.SimpleListFilter):
     title = 'Есть подписки'
     parameter_name = 'subscription'
+
     def lookups(self, request, model_admin):
         return (
             ('yes', 'Да'),
@@ -71,6 +73,7 @@ class SubscriptionFilter(admin.SimpleListFilter):
 class FollowerFilter(admin.SimpleListFilter):
     title = 'Есть подписчики'
     parameter_name = 'follower'
+
     def lookups(self, request, model_admin):
         return (
             ('yes', 'Да'),
@@ -100,8 +103,6 @@ class CookingTimeFilter(admin.SimpleListFilter):
     LESS_ONE_HOUR = f'Меньше {TRESHOLD_1}(мин)'
     ONE_HOUR_TO_ONE_DAY = f'От {TRESHOLD_1}(мин) до {TRESHOLD_2}(мин)'
     MORE_ONE_DAY = f'Больше {TRESHOLD_2}(мин)'
-
-
 
     RANGES = {
         '1': ((0, TRESHOLD_1), LESS_ONE_HOUR),

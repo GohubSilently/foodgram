@@ -6,7 +6,6 @@ from django.core.validators import (
     RegexValidator, MinValueValidator
 )
 from django.db import models
-from django.urls import reverse
 
 from .constants import MIN_AMOUNT, MIN_COOKING_TIME, USERNAME_REGEX
 
