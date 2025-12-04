@@ -7,5 +7,5 @@ app_name = 'recipes'
 
 
 urlpatterns = [
-    path('<int:pk>/', short_link, name='short_link'),
+    path('s/<str:short_link>/', short_link, name='short_link'),
 ]

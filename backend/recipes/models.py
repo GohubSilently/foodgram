@@ -1,10 +1,18 @@
+import random
+import string
+
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import (
     RegexValidator, MinValueValidator
 )
 from django.db import models
+from django.urls import reverse
 
 from .constants import MIN_AMOUNT, MIN_COOKING_TIME, USERNAME_REGEX
+
+
+def generate_short_link():
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=10))
 
 
 class User(AbstractUser):
@@ -108,7 +116,6 @@ class Recipe(models.Model):
         validators=[MinValueValidator(MIN_COOKING_TIME)],
         verbose_name='Время приготовления',
     )
-    image = models.ImageField(verbose_name='Фото', upload_to='recipes')
     created_at = models.DateTimeField(
         auto_now_add=True, verbose_name='Время создания'
     )
@@ -120,6 +127,17 @@ class Recipe(models.Model):
     ingredients = models.ManyToManyField(
         Ingredient, verbose_name='Ингредиенты'
     )
+    image = models.ImageField(verbose_name='Фото', upload_to='recipes')
+    short_link = models.CharField(
+        max_length=10,
+        unique=True,
+        blank=True,
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.short_link:
+            self.short_link = generate_short_link()
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ('-created_at',)

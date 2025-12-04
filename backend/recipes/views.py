@@ -1,10 +1,9 @@
-from django.http import Http404
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
+from django.urls import reverse
 
 from .models import Recipe
 
 
-def short_link(request, pk):
-    if not Recipe.objects.filter(recipe=pk).exists():
-        raise Http404(f'Рецета {pk} не существует!')
-    return redirect(f'/recipes/{pk}/')
+def short_link(request, link_code):
+    recipe = get_object_or_404(Recipe, short_link=link_code)
+    return redirect(reverse('recipe-detail', args=[recipe.pk]))

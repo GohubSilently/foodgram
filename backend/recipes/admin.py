@@ -3,7 +3,7 @@ from django.contrib.auth.models import Group
 from django.db.models import Count
 from django.utils.safestring import mark_safe
 
-from .forms import UserChangeForm
+from .forms import UserForm
 from .models import (
     Ingredient, Tag, Recipe, User, Subscription, ShoppingCart, Favorite,
     RecipeIngredient
@@ -26,17 +26,82 @@ class RecipeCountMixin:
         return obj.recipes_count
 
 
+class RecipeFilter(admin.SimpleListFilter):
+    title = 'Есть рецепты'
+    parameter_name = 'recipes'
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', 'Да'),
+            ('no', 'Нет'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            return queryset.annotate(
+                recipes_count=Count('recipes')
+            ).filter(recipes_count__gt=0)
+        if self.value() == 'no':
+            return queryset.annotate(
+                recipes_count=Count('recipes')
+            ).filter(recipes_count=0)
+        return queryset
+
+
+class SubscriptionFilter(admin.SimpleListFilter):
+    title = 'Есть подписки'
+    parameter_name = 'subscription'
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', 'Да'),
+            ('no', 'Нет'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            return queryset.annotate(
+                follower_count=Count('followers')
+            ).filter(follower_count__gt=0)
+        if self.value() == 'no':
+            return queryset.annotate(
+                follower_count=Count('followers')
+            ).filter(follower_count=0)
+        return queryset
+
+
+class FollowerFilter(admin.SimpleListFilter):
+    title = 'Есть подписчики'
+    parameter_name = 'follower'
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', 'Да'),
+            ('no', 'Нет'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            return queryset.annotate(
+                subscription_count=Count('authors')
+            ).filter(subscription_count__gt=0)
+        if self.value() == 'no':
+            return (queryset.annotate(
+                subscription_count=Count('authors')
+            ).filter(subscription_count=0))
+        return queryset
+
+
 class CookingTimeFilter(admin.SimpleListFilter):
     title = 'Время приготовления'
     parameter_name = 'cooking_time'
 
-    LESS_ONE_HOUR = 'Меньше одного часа'
-    ONE_HOUR_TO_ONE_DAY = 'От одного часа до 24 часов'
-    MORE_ONE_DAY = 'Больше 24 часов'
-
     TRESHOLD_1 = 60
     TRESHOLD_2 = 60 * 24
     MAX_TIME = 1000000
+
+    LESS_ONE_HOUR = f'Меньше {TRESHOLD_1}(мин)'
+    ONE_HOUR_TO_ONE_DAY = f'От {TRESHOLD_1}(мин) до {TRESHOLD_2}(мин)'
+    MORE_ONE_DAY = f'Больше {TRESHOLD_2}(мин)'
+
+
 
     RANGES = {
         '1': ((0, TRESHOLD_1), LESS_ONE_HOUR),
@@ -119,6 +184,7 @@ class RecipeAdmin(admin.ModelAdmin):
         'name', 'author__username', 'tags__name', 'ingredients__name'
     )
     readonly_fields = ('display_image',)
+    exclude = ('ingredients',)
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -164,7 +230,10 @@ class RecipeAdmin(admin.ModelAdmin):
     @admin.display(description='Картинка')
     @mark_safe
     def display_image(self, recipe):
-        return f'<img src="{recipe.image.url}" height="200" width="200">'
+        return (
+            f'<img src="{recipe.image.url}" '
+            f'style="max-width: 100px; height: 100px; border-radius: 10px;">'
+        )
 
 
 @admin.register(RecipeIngredient)
@@ -175,13 +244,15 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class UserAdmin(RecipeCountMixin, admin.ModelAdmin):
-    form = UserChangeForm
+    form = UserForm
     list_display = (
         'id', 'display_email', 'display_username', 'display_fullname',
         *RecipeCountMixin.list_display, 'display_authors',
-        'display_followers', 'display_favorites', 'display_avatar',
+        'display_followers', 'display_favorites', 'display_avatar'
     )
-    readonly_fields = ('display_avatar',)
+    search_related_fields = ('shopping_cart', 'favorites',)
+    list_filter = (RecipeFilter, SubscriptionFilter, FollowerFilter)
+    readonly_fields = ('display_avatar', )
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -221,7 +292,10 @@ class UserAdmin(RecipeCountMixin, admin.ModelAdmin):
     def display_avatar(self, user):
         if not user.avatar:
             return ''
-        return f'<img src="{user.avatar.url}" height="200" width="200">'
+        return (
+            f'<img src="{user.avatar.url}" '
+            f'style="max-width: 100px; height: 100px; border-radius: 10px;">'
+        )
 
 
 @admin.register(Subscription)

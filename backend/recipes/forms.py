@@ -1,21 +1,27 @@
 from django import forms
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.forms import UserChangeForm
 
 from .models import User
 
 
-class UserChangeForm(forms.ModelForm):
-    new_password = forms.CharField(required=False, label='Новый пароль')
+class UserForm(UserChangeForm):
+    password = forms.CharField(
+        widget=forms.PasswordInput(),
+        label='Пароль',
+    )
 
     class Meta:
         model = User
-        fields = '__all__'
+        exclude = (
+            'user_permissions', 'groups', 'is_staff', 'is_active',
+            'date_joined', 'last_login', 'is_superuser'
+        )
 
     def save(self, commit=True):
-        instance = super().save(commit=False)
-        password = self.cleaned_data.get('new_password')
+        user = super().save(commit=False)
+        password = self.cleaned_data.get('password')
         if password:
-            instance.password = make_password(password)
+            user.set_password(password)
         if commit:
-            instance.save()
-        return instance
+            user.save()
+        return user
