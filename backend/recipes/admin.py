@@ -1,9 +1,9 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 from django.db.models import Count
 from django.utils.safestring import mark_safe
 
-from .forms import UserForm
 from .models import (
     Ingredient, Tag, Recipe, User, Subscription, ShoppingCart, Favorite,
     RecipeIngredient
@@ -26,70 +26,46 @@ class RecipeCountMixin:
         return obj.recipes_count
 
 
-class RecipeFilter(admin.SimpleListFilter):
+class RecipeBaseFilter(admin.SimpleListFilter):
+    related_name = None
+    LOOKUPS = (
+        ('yes', 'Да'),
+        ('no', 'Нет')
+    )
+
+    def lookups(self, request, model_admin):
+        return self.LOOKUPS
+
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            queryset = queryset.annotate(
+                count=Count(self.related_name)
+            ).filter(count__gt=0)
+
+        if self.value() == 'no':
+            queryset = queryset.annotate(
+                count=Count(self.related_name)
+            ).filter(count=0)
+
+        return queryset
+
+
+class RecipeFilter(RecipeBaseFilter):
     title = 'Есть рецепты'
     parameter_name = 'recipes'
-
-    def lookups(self, request, model_admin):
-        return (
-            ('yes', 'Да'),
-            ('no', 'Нет'),
-        )
-
-    def queryset(self, request, queryset):
-        if self.value() == 'yes':
-            return queryset.annotate(
-                recipes_count=Count('recipes')
-            ).filter(recipes_count__gt=0)
-        if self.value() == 'no':
-            return queryset.annotate(
-                recipes_count=Count('recipes')
-            ).filter(recipes_count=0)
-        return queryset
+    related_name = 'recipes'
 
 
-class SubscriptionFilter(admin.SimpleListFilter):
+class SubscriptionFilter(RecipeBaseFilter):
     title = 'Есть подписки'
     parameter_name = 'subscription'
-
-    def lookups(self, request, model_admin):
-        return (
-            ('yes', 'Да'),
-            ('no', 'Нет'),
-        )
-
-    def queryset(self, request, queryset):
-        if self.value() == 'yes':
-            return queryset.annotate(
-                follower_count=Count('followers')
-            ).filter(follower_count__gt=0)
-        if self.value() == 'no':
-            return queryset.annotate(
-                follower_count=Count('followers')
-            ).filter(follower_count=0)
-        return queryset
+    related_name = 'followers'
 
 
-class FollowerFilter(admin.SimpleListFilter):
+class FollowerFilter(RecipeBaseFilter):
     title = 'Есть подписчики'
     parameter_name = 'follower'
-
-    def lookups(self, request, model_admin):
-        return (
-            ('yes', 'Да'),
-            ('no', 'Нет'),
-        )
-
-    def queryset(self, request, queryset):
-        if self.value() == 'yes':
-            return queryset.annotate(
-                subscription_count=Count('authors')
-            ).filter(subscription_count__gt=0)
-        if self.value() == 'no':
-            return (queryset.annotate(
-                subscription_count=Count('authors')
-            ).filter(subscription_count=0))
-        return queryset
+    related_name = 'subscriptions'
 
 
 class CookingTimeFilter(admin.SimpleListFilter):
@@ -244,8 +220,7 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
 
 
 @admin.register(User)
-class UserAdmin(RecipeCountMixin, admin.ModelAdmin):
-    form = UserForm
+class UserAdmin(RecipeCountMixin, UserAdmin):
     list_display = (
         'id', 'display_email', 'display_username', 'display_fullname',
         *RecipeCountMixin.list_display, 'display_authors',
@@ -254,6 +229,17 @@ class UserAdmin(RecipeCountMixin, admin.ModelAdmin):
     search_related_fields = ('shopping_cart', 'favorites',)
     list_filter = (RecipeFilter, SubscriptionFilter, FollowerFilter)
     readonly_fields = ('display_avatar', )
+    fieldsets = UserAdmin.fieldsets + (
+        (
+            None,
+            {
+                'fields': (
+                    'avatar',
+                    'display_avatar',
+                ),
+            },
+        ),
+    )
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)

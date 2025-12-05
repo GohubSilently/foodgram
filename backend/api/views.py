@@ -5,7 +5,7 @@ from django.http import FileResponse
 from djoser.views import UserViewSet
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -164,16 +164,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=True, methods=['get'], url_path='get-link',
     )
-    def get_link(self, request, pk=None):
-        recipe = get_object_or_404(Recipe, pk=pk)
-        return Response(
-            {'short-link': request.build_absolute_uri(
-                reverse(
-                    'recipes:short_link', args=[recipe.short_link]
-                )
-            )
-            }
-        )
+    def get_short_link(self, request, pk=None):
+        if not self.queryset.filter(pk=pk).exists():
+            raise NotFound(f'Рецепт с id={pk} не найден!')
+        return Response({'short-link': request.build_absolute_uri(
+            reverse('recipe-short-link', args=[pk])
+        )})
 
     @action(
         detail=False, methods=['get'], url_path='download_shopping_cart',
