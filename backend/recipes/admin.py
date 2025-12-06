@@ -209,7 +209,7 @@ class RecipeAdmin(admin.ModelAdmin):
     def display_image(self, recipe):
         return (
             f'<img src="{recipe.image.url}" '
-            f'style="max-width: 100px; height: 100px; border-radius: 10px;">'
+            f'style="max-width: 150px; max-height: 150px; border-radius: 10px;">'
         )
 
 
@@ -245,8 +245,8 @@ class UserAdmin(RecipeCountMixin, UserAdmin):
         queryset = super().get_queryset(request)
         queryset = queryset.annotate(
             display_favorites=Count('favorites'),
-            display_followers=Count('followers'),
-            display_authors=Count('authors'),
+            display_followers=Count('followers', distinct=True),
+            display_authors=Count('authors', distinct=True),
         )
         return queryset
 
@@ -281,7 +281,7 @@ class UserAdmin(RecipeCountMixin, UserAdmin):
             return ''
         return (
             f'<img src="{user.avatar.url}" '
-            f'style="max-width: 100px; height: 100px; border-radius: 10px;">'
+            f'style="max-width: 100px; max-height: 100px; border-radius: 10px;">'
         )
 
 

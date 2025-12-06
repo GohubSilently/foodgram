@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.core.validators import (
     RegexValidator, MinValueValidator
 )
@@ -42,6 +43,10 @@ class Subscription(models.Model):
         User, on_delete=models.CASCADE, related_name='authors',
         verbose_name='Подписка'
     )
+
+    def clean(self):
+        if self.user_id == self.author_id:
+            raise ValidationError("Нельзя подписаться на самого себя.")
 
     class Meta:
         constraints = [
@@ -101,7 +106,7 @@ class Ingredient(models.Model):
 
 class Recipe(models.Model):
     name = models.CharField(
-        max_length=256, help_text='Имя', verbose_name='Название'
+        max_length=256, verbose_name='Название'
     )
     text = models.TextField(verbose_name='Описание')
     cooking_time = models.PositiveIntegerField(
