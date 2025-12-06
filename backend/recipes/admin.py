@@ -209,7 +209,8 @@ class RecipeAdmin(admin.ModelAdmin):
     def display_image(self, recipe):
         return (
             f'<img src="{recipe.image.url}" '
-            f'style="max-width: 150px; max-height: 150px; border-radius: 10px;">'
+            f'style="max-width: 150px; max-height: 150px;'
+            f'border-radius: 10px;">'
         )
 
 
@@ -281,7 +282,8 @@ class UserAdmin(RecipeCountMixin, UserAdmin):
             return ''
         return (
             f'<img src="{user.avatar.url}" '
-            f'style="max-width: 100px; max-height: 100px; border-radius: 10px;">'
+            f'style="max-width: 100px; max-height: 100px;'
+            f'border-radius: 10px;">'
         )
 
 
