@@ -1,4 +1,4 @@
-# FoodGram
+# FoodGram - Сервис для загрузки рецептов на базе фреймворка Django.
 ![Foodgram](https://github.com/GohubSilently/foodgram/actions/workflows/main.yml/badge.svg)
 
 FoodGram — cервис позволяющий пользователям создавать, хранить и делиться рецептами онлайн.
